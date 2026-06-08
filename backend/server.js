@@ -8,10 +8,11 @@ const env = require('./src/config/env');
 const db = require('./src/config/db');
 const swaggerSpec = require('./src/swagger/swaggerConfig');
 const { errorHandler } = require('./src/middleware/errorHandler');
-const { checkForcePasswordChange, verifyToken } = require('./src/middleware/auth');
+const { checkForcePasswordChange, verifyToken, requireRole } = require('./src/middleware/auth');
 
 // ─── Route Imports ───────────────────────────────────────────
 const authRoutes = require('./src/routes/auth.routes');
+const adminRoutes = require('./src/routes/admin.routes');
 
 // ─── Express App Setup ───────────────────────────────────────
 const app = express();
@@ -56,8 +57,8 @@ app.get('/api/health', (req, res) => {
 // Public routes (no auth required)
 app.use('/api/auth', authRoutes);
 
-// Protected routes (will be added in subsequent phases)
-// app.use('/api/admin', verifyToken, checkForcePasswordChange, adminRoutes);
+// Protected routes
+app.use('/api/admin', verifyToken, requireRole('ADMIN'), checkForcePasswordChange, adminRoutes);
 // app.use('/api/manager', verifyToken, checkForcePasswordChange, managerRoutes);
 // app.use('/api/employee', verifyToken, checkForcePasswordChange, employeeRoutes);
 
