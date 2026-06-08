@@ -102,11 +102,10 @@ const projectSchema = new mongoose.Schema(
 projectSchema.index({ managerId: 1, status: 1 }); // Manager's project list
 
 // ─── Validation: startDate must be before endDate ─────────────
-projectSchema.pre('validate', function (next) {
+projectSchema.pre('validate', function () {
   if (this.startDate && this.endDate && this.startDate >= this.endDate) {
     this.invalidate('endDate', 'End date must be after start date');
   }
-  next();
 });
 
 // ─── Transform: Clean JSON output ────────────────────────────

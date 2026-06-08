@@ -111,7 +111,7 @@ const employeeSchema = new mongoose.Schema(
 );
 
 // ─── Indexes ──────────────────────────────────────────────────
-employeeSchema.index({ userId: 1 }, { unique: true });
+// userId unique index is created by `unique: true` in the schema field above
 employeeSchema.index({ status: 1, department: 1 }); // Resource Dashboard filter
 
 // ─── Transform: Clean JSON output ────────────────────────────

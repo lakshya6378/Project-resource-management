@@ -65,11 +65,10 @@ allocationSchema.index({ employeeId: 1, fromDate: 1, toDate: 1, isActive: 1 });
 allocationSchema.index({ projectId: 1, isActive: 1 });
 
 // ─── Validation: fromDate must be before toDate ───────────────
-allocationSchema.pre('validate', function (next) {
+allocationSchema.pre('validate', function () {
   if (this.fromDate && this.toDate && this.fromDate >= this.toDate) {
     this.invalidate('toDate', 'To date must be after from date');
   }
-  next();
 });
 
 // ─── Transform: Clean JSON output ────────────────────────────

@@ -62,11 +62,14 @@ app.use('/api/auth', authRoutes);
 // app.use('/api/employee', verifyToken, checkForcePasswordChange, employeeRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────
-app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-  });
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      message: `Route not found: ${req.method} ${req.originalUrl}`,
+    });
+  }
+  next();
 });
 
 // ─── Global Error Handler (must be last) ─────────────────────
