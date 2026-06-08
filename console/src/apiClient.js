@@ -135,6 +135,35 @@ const getConfig = () => client.get('/admin/config');
 
 const updateConfig = (data) => client.put('/admin/config', data);
 
+// ═══════════════════════════════════════════════════════════════
+// MANAGER ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const createAllocation = (data) => client.post('/manager/allocations', data);
+
+const endAllocation = (id) => client.delete(`/manager/allocations/${id}`);
+
+const getProjectAllocations = (projectId) =>
+  client.get(`/manager/projects/${projectId}/allocations`);
+
+const getEmployeeAllocations = (employeeId) =>
+  client.get(`/manager/employees/${employeeId}/allocations`);
+
+const getTeamTimesheets = (weekStart) =>
+  client.get('/manager/timesheets/team', { params: { weekStart } });
+
+// ═══════════════════════════════════════════════════════════════
+// EMPLOYEE ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const getMyAllocations = () => client.get('/employee/my-allocations');
+
+const submitTimesheet = (data) => client.post('/employee/timesheets', data);
+
+const getMyTimesheets = () => client.get('/employee/timesheets');
+
+const getTimesheetByWeek = (weekStart) => client.get(`/employee/timesheets/${weekStart}`);
+
 module.exports = {
   // Token management
   setToken,
@@ -172,5 +201,16 @@ module.exports = {
   // Admin - Config
   getConfig,
   updateConfig,
+  // Manager
+  createAllocation,
+  endAllocation,
+  getProjectAllocations,
+  getEmployeeAllocations,
+  getTeamTimesheets,
+  // Employee
+  getMyAllocations,
+  submitTimesheet,
+  getMyTimesheets,
+  getTimesheetByWeek,
 };
 

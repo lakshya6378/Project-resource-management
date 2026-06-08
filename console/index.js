@@ -4,6 +4,8 @@ const { userMenu } = require('./src/screens/adminUserScreens');
 const { employeeMenu } = require('./src/screens/adminEmployeeScreens');
 const { projectMenu } = require('./src/screens/adminProjectScreens');
 const { configMenu } = require('./src/screens/adminConfigScreen');
+const { managerMainMenu } = require('./src/screens/managerScreens');
+const { employeeMainMenu } = require('./src/screens/employeeScreens');
 const api = require('./src/apiClient');
 const ui = require('./src/ui');
 
@@ -11,8 +13,6 @@ const ui = require('./src/ui');
  * PRM Tool Console Application
  *
  * Entry point: runs login, then shows role-based main menu.
- * Currently supports ADMIN role. Manager and Employee roles
- * will be added in later phases.
  */
 
 const adminMainMenu = async () => {
@@ -59,7 +59,7 @@ const adminMainMenu = async () => {
       } catch (err) {
         ui.error(err.message);
       }
-      return main(); // Back to login
+      return 'LOGOUT';
   }
 
   return adminMainMenu();
@@ -75,16 +75,21 @@ const main = async () => {
 
   const user = await loginScreen();
 
+  let action;
   switch (user.role) {
     case 'ADMIN':
-      await adminMainMenu();
+      action = await adminMainMenu();
       break;
     case 'MANAGER':
-      ui.warn('Manager console screens will be available in Phase 4');
+      action = await managerMainMenu();
       break;
     case 'EMPLOYEE':
-      ui.warn('Employee console screens will be available in Phase 5');
+      action = await employeeMainMenu();
       break;
+  }
+
+  if (action === 'LOGOUT') {
+    return main(); // Back to login
   }
 };
 
@@ -92,3 +97,4 @@ main().catch((err) => {
   console.error('Fatal error:', err.message);
   process.exit(1);
 });
+

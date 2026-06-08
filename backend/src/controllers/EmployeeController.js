@@ -25,7 +25,7 @@ class EmployeeController {
   }
 
   /** GET /api/employee/my-allocations */
-  async getMyAllocations(req, res, next) {
+  getMyAllocations = async (req, res, next) => {
     try {
       const employee = await this._getMyEmployee(req.user.id);
       const allocations = await allocationService.listByEmployee(employee._id);
@@ -36,7 +36,7 @@ class EmployeeController {
   }
 
   /** POST /api/employee/timesheets */
-  async submitTimesheet(req, res, next) {
+  submitTimesheet = async (req, res, next) => {
     try {
       const employee = await this._getMyEmployee(req.user.id);
       const timesheet = await timesheetService.submitTimesheet(req.body, employee._id);
@@ -47,7 +47,7 @@ class EmployeeController {
   }
 
   /** GET /api/employee/timesheets */
-  async getMyTimesheets(req, res, next) {
+  getMyTimesheets = async (req, res, next) => {
     try {
       const employee = await this._getMyEmployee(req.user.id);
       const timesheets = await timesheetService.getEmployeeTimesheets(employee._id);
@@ -58,7 +58,7 @@ class EmployeeController {
   }
 
   /** GET /api/employee/timesheets/:weekStart */
-  async getTimesheetByWeek(req, res, next) {
+  getTimesheetByWeek = async (req, res, next) => {
     try {
       const employee = await this._getMyEmployee(req.user.id);
       const timesheet = await timesheetService.getTimesheetByWeek(
