@@ -3,6 +3,8 @@ const router = express.Router();
 
 const adminUserController = require('../controllers/AdminUserController');
 const adminEmployeeController = require('../controllers/AdminEmployeeController');
+const adminProjectController = require('../controllers/AdminProjectController');
+const adminConfigController = require('../controllers/AdminConfigController');
 const { validate } = require('../middleware/validate');
 const { createUserSchema, resetPasswordSchema } = require('../validators/userSchemas');
 const {
@@ -11,6 +13,13 @@ const {
   addSkillSchema,
   updateSkillSchema,
 } = require('../validators/employeeSchemas');
+const {
+  createProjectSchema,
+  updateProjectSchema,
+  addMilestoneSchema,
+  updateMilestoneSchema,
+} = require('../validators/projectSchemas');
+const { updateConfigSchema } = require('../validators/configSchemas');
 
 /**
  * Admin Routes
@@ -434,5 +443,265 @@ router.put('/employees/:id/skills/:skillId', validate(updateSkillSchema), adminE
  *         description: Skill removed
  */
 router.delete('/employees/:id/skills/:skillId', adminEmployeeController.removeSkill);
+
+// ═══════════════════════════════════════════════════════════════
+// PROJECT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /admin/projects:
+ *   post:
+ *     tags: [Admin - Projects]
+ *     summary: Create a new project
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, managerId, startDate, endDate]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: PRM Tool v2
+ *               description:
+ *                 type: string
+ *               managerId:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *                 example: '2026-01-01'
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 example: '2026-06-30'
+ *     responses:
+ *       201:
+ *         description: Project created
+ *       400:
+ *         description: Invalid manager or date range
+ */
+router.post('/projects', validate(createProjectSchema), adminProjectController.createProject);
+
+/**
+ * @swagger
+ * /admin/projects:
+ *   get:
+ *     tags: [Admin - Projects]
+ *     summary: List all projects
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PLANNED, ACTIVE, ON_HOLD, COMPLETED]
+ *       - in: query
+ *         name: managerId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Projects list
+ */
+router.get('/projects', adminProjectController.listProjects);
+
+/**
+ * @swagger
+ * /admin/projects/{id}:
+ *   get:
+ *     tags: [Admin - Projects]
+ *     summary: Get a single project with milestones
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Project details
+ *       404:
+ *         description: Project not found
+ */
+router.get('/projects/:id', adminProjectController.getProject);
+
+/**
+ * @swagger
+ * /admin/projects/{id}:
+ *   put:
+ *     tags: [Admin - Projects]
+ *     summary: Update project details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               managerId:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *               status:
+ *                 type: string
+ *                 enum: [PLANNED, ACTIVE, ON_HOLD, COMPLETED]
+ *     responses:
+ *       200:
+ *         description: Project updated
+ *       404:
+ *         description: Project not found
+ */
+router.put('/projects/:id', validate(updateProjectSchema), adminProjectController.updateProject);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/milestones:
+ *   post:
+ *     tags: [Admin - Projects]
+ *     summary: Add a milestone to a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, dueDate]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: MVP Release
+ *               dueDate:
+ *                 type: string
+ *                 format: date
+ *                 example: '2026-03-15'
+ *     responses:
+ *       201:
+ *         description: Milestone added
+ *       400:
+ *         description: Due date outside project range
+ *       409:
+ *         description: Duplicate milestone title
+ */
+router.post('/projects/:id/milestones', validate(addMilestoneSchema), adminProjectController.addMilestone);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/milestones/{milestoneId}:
+ *   put:
+ *     tags: [Admin - Projects]
+ *     summary: Update milestone status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: milestoneId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [NOT_STARTED, IN_PROGRESS, DONE]
+ *     responses:
+ *       200:
+ *         description: Milestone status updated
+ *       404:
+ *         description: Project or milestone not found
+ */
+router.put('/projects/:id/milestones/:milestoneId', validate(updateMilestoneSchema), adminProjectController.updateMilestoneStatus);
+
+// ═══════════════════════════════════════════════════════════════
+// SYSTEM CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /admin/config:
+ *   get:
+ *     tags: [Admin - Config]
+ *     summary: Get system configuration
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current system configuration
+ */
+router.get('/config', adminConfigController.getConfig);
+
+/**
+ * @swagger
+ * /admin/config:
+ *   put:
+ *     tags: [Admin - Config]
+ *     summary: Update system configuration
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               llmProvider:
+ *                 type: string
+ *                 enum: [GEMINI, GROQ]
+ *               llmApiKey:
+ *                 type: string
+ *               schedulerIntervalHours:
+ *                 type: number
+ *                 example: 4
+ *               maxWeeklyHours:
+ *                 type: number
+ *                 example: 40
+ *     responses:
+ *       200:
+ *         description: Configuration updated
+ */
+router.put('/config', validate(updateConfigSchema), adminConfigController.updateConfig);
 
 module.exports = router;
