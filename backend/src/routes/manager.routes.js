@@ -3,6 +3,7 @@ const router = express.Router();
 
 const managerAllocationController = require('../controllers/ManagerAllocationController');
 const managerTimesheetController = require('../controllers/ManagerTimesheetController');
+const managerProjectController = require('../controllers/ManagerProjectController');
 const { validate } = require('../middleware/validate');
 const { createAllocationSchema } = require('../validators/allocationSchemas');
 
@@ -145,5 +146,31 @@ router.get('/employees/:employeeId/allocations', managerAllocationController.lis
  *         description: Team timesheets retrieved
  */
 router.get('/timesheets/team', managerTimesheetController.getTeamTimesheets);
+
+// ═══════════════════════════════════════════════════════════════
+// AI CORE MODULE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /manager/projects/{id}/suggest-team:
+ *   get:
+ *     tags: [Manager - Projects]
+ *     summary: Use AI to suggest a team for a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: AI Team Suggestion generated successfully
+ *       400:
+ *         description: AI not configured or no available staff
+ */
+router.get('/projects/:id/suggest-team', managerProjectController.suggestTeam);
 
 module.exports = router;

@@ -154,6 +154,9 @@ const getEmployeeAllocations = (employeeId) =>
 const getTeamTimesheets = (weekStart) =>
   client.get('/manager/timesheets/team', { params: { weekStart } });
 
+const suggestTeam = (projectId) =>
+  client.get(`/manager/projects/${projectId}/suggest-team`);
+
 // ═══════════════════════════════════════════════════════════════
 // EMPLOYEE ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
@@ -210,6 +213,7 @@ module.exports = {
   getProjectAllocations,
   getEmployeeAllocations,
   getTeamTimesheets,
+  suggestTeam,
   // Employee
   getMyAllocations,
   submitTimesheet,

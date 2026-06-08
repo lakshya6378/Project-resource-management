@@ -65,6 +65,7 @@ const allocationsMenu = async () => {
       choices: [
         { name: '📋 View allocations for a project', value: 'view_project' },
         { name: '👤 View allocations for an employee', value: 'view_employee' },
+        { name: '✨ Get AI Team Suggestion', value: 'suggest' },
         { name: '➕ Allocate employee to project', value: 'create' },
         { name: '🛑 End an allocation', value: 'end' },
         new inquirer.Separator(),
@@ -79,6 +80,9 @@ const allocationsMenu = async () => {
       break;
     case 'view_employee':
       await viewEmployeeAllocations();
+      break;
+    case 'suggest':
+      await suggestTeamScreen();
       break;
     case 'create':
       await createAllocationScreen();
@@ -151,6 +155,41 @@ const viewEmployeeAllocations = async () => {
       ['project', 'active', 'util', 'from', 'to'],
       { project: 'Project', active: 'Active', util: 'Util%', from: 'From', to: 'To' }
     );
+  } catch (err) {
+    ui.error(err.message);
+  }
+};
+
+const suggestTeamScreen = async () => {
+  try {
+    const project = await selectMyProject('Select project for AI suggestion:');
+    if (!project) return;
+
+    ui.info('🧠 AI is analyzing project requirements and available staff...');
+    
+    const result = await api.suggestTeam(project._id);
+    const suggestion = result.data;
+
+    ui.header(`AI Team Suggestion — ${project.name}`);
+    
+    console.log(`\n💡 Rationale:\n${suggestion.rationale}\n`);
+    console.log(`🎯 Roles Identified:\n- ${suggestion.rolesIdentified.join('\n- ')}\n`);
+
+    if (suggestion.suggestedTeam && suggestion.suggestedTeam.length > 0) {
+      ui.table(
+        suggestion.suggestedTeam.map((t) => ({
+          name: t.name,
+          role: t.suggestedRole,
+          util: `${t.suggestedUtilisation}%`,
+          reason: t.reasoning,
+        })),
+        ['name', 'role', 'util', 'reason'],
+        { name: 'Employee', role: 'Suggested Role', util: 'Util%', reason: 'Reasoning' }
+      );
+    } else {
+      ui.warn('No suitable team members found.');
+    }
+
   } catch (err) {
     ui.error(err.message);
   }
