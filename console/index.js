@@ -2,6 +2,8 @@ const inquirer = require('inquirer');
 const { loginScreen, changePasswordScreen } = require('./src/screens/authScreens');
 const { userMenu } = require('./src/screens/adminUserScreens');
 const { employeeMenu } = require('./src/screens/adminEmployeeScreens');
+const { projectMenu } = require('./src/screens/adminProjectScreens');
+const { configMenu } = require('./src/screens/adminConfigScreen');
 const api = require('./src/apiClient');
 const ui = require('./src/ui');
 
@@ -24,6 +26,8 @@ const adminMainMenu = async () => {
       choices: [
         { name: '👤 User Management', value: 'users' },
         { name: '👥 Employee Management', value: 'employees' },
+        { name: '📁 Project Management', value: 'projects' },
+        { name: '⚙️  System Configuration', value: 'config' },
         { name: '🔑 Change My Password', value: 'password' },
         new inquirer.Separator(),
         { name: '🚪 Logout', value: 'logout' },
@@ -37,6 +41,12 @@ const adminMainMenu = async () => {
       break;
     case 'employees':
       await employeeMenu();
+      break;
+    case 'projects':
+      await projectMenu();
+      break;
+    case 'config':
+      await configMenu();
       break;
     case 'password':
       await changePasswordScreen();

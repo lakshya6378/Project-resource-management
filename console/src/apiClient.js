@@ -107,6 +107,34 @@ const updateSkillProficiency = (employeeId, skillId, proficiency) =>
 const removeSkill = (employeeId, skillId) =>
   client.delete(`/admin/employees/${employeeId}/skills/${skillId}`);
 
+// ═══════════════════════════════════════════════════════════════
+// ADMIN — PROJECT ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const createProject = (data) => client.post('/admin/projects', data);
+
+const listProjects = (params = {}) => client.get('/admin/projects', { params });
+
+const getProject = (id) => client.get(`/admin/projects/${id}`);
+
+const updateProject = (id, data) => client.put(`/admin/projects/${id}`, data);
+
+// ─── Milestones ──────────────────────────────────────────────
+
+const addMilestone = (projectId, data) =>
+  client.post(`/admin/projects/${projectId}/milestones`, data);
+
+const updateMilestoneStatus = (projectId, milestoneId, status) =>
+  client.put(`/admin/projects/${projectId}/milestones/${milestoneId}`, { status });
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN — SYSTEM CONFIG ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const getConfig = () => client.get('/admin/config');
+
+const updateConfig = (data) => client.put('/admin/config', data);
+
 module.exports = {
   // Token management
   setToken,
@@ -133,4 +161,16 @@ module.exports = {
   addSkill,
   updateSkillProficiency,
   removeSkill,
+  // Admin - Projects
+  createProject,
+  listProjects,
+  getProject,
+  updateProject,
+  // Admin - Milestones
+  addMilestone,
+  updateMilestoneStatus,
+  // Admin - Config
+  getConfig,
+  updateConfig,
 };
+
