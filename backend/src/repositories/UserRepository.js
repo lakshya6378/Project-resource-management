@@ -39,7 +39,7 @@ class UserRepository {
 
   async update(id, data) {
     return User.findByIdAndUpdate(id, data, {
-      new: true,            // return updated document
+      returnDocument: 'after',
       runValidators: true,  // run schema validators on update
     }).select('-passwordHash');
   }

@@ -38,7 +38,7 @@ class EmployeeRepository {
 
   async update(id, data) {
     return Employee.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
   }
@@ -50,7 +50,7 @@ class EmployeeRepository {
     return Employee.findByIdAndUpdate(
       employeeId,
       { $push: { skills: skill } },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
   }
 
@@ -61,7 +61,7 @@ class EmployeeRepository {
     return Employee.findOneAndUpdate(
       { _id: employeeId, 'skills._id': skillId },
       { $set: { 'skills.$.proficiency': proficiency } },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
   }
 
@@ -72,7 +72,7 @@ class EmployeeRepository {
     return Employee.findByIdAndUpdate(
       employeeId,
       { $pull: { skills: { _id: skillId } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

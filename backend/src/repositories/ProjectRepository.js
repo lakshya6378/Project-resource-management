@@ -36,7 +36,7 @@ class ProjectRepository {
 
   async update(id, data) {
     return Project.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     }).populate('managerId', 'fullName username');
   }
@@ -48,7 +48,7 @@ class ProjectRepository {
     return Project.findByIdAndUpdate(
       projectId,
       { $push: { milestones: milestone } },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
   }
 
@@ -59,7 +59,7 @@ class ProjectRepository {
     return Project.findOneAndUpdate(
       { _id: projectId, 'milestones._id': milestoneId },
       { $set: { 'milestones.$.status': status } },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
   }
 
@@ -70,7 +70,7 @@ class ProjectRepository {
     return Project.findByIdAndUpdate(
       projectId,
       { healthStatus },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

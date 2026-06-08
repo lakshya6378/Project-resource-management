@@ -93,7 +93,7 @@ class AllocationRepository {
     return Allocation.findByIdAndUpdate(
       id,
       { toDate: endDate, isActive: false },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 

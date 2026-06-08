@@ -25,7 +25,7 @@ class SystemConfigRepository {
       {},    // match any document (there's only one)
       data,
       {
-        new: true,
+        returnDocument: 'after',
         upsert: true,        // create if doesn't exist
         runValidators: true,
       }
