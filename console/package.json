@@ -1,0 +1,14 @@
+{
+  "name": "prm-tool-console",
+  "version": "1.0.0",
+  "description": "PRM Tool — Console (CLI) application for API testing and interaction",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.6"
+  }
+}
