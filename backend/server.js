@@ -9,6 +9,7 @@ const db = require('./src/config/db');
 const swaggerSpec = require('./src/swagger/swaggerConfig');
 const { errorHandler } = require('./src/middleware/errorHandler');
 const { checkForcePasswordChange, verifyToken, requireRole } = require('./src/middleware/auth');
+const schedulerService = require('./src/services/SchedulerService');
 
 // ─── Route Imports ───────────────────────────────────────────
 const authRoutes = require('./src/routes/auth.routes');
@@ -84,6 +85,9 @@ const startServer = async () => {
     // Connect to MongoDB
     await db.connect();
 
+    // Start Scheduler
+    await schedulerService.start();
+
     // Start listening
     const server = app.listen(env.PORT, () => {
       console.log(`\n🚀 PRM Tool API Server`);
@@ -98,6 +102,7 @@ const startServer = async () => {
     // ─── Graceful Shutdown ────────────────────────────────────
     const gracefulShutdown = async (signal) => {
       console.log(`\n📛 ${signal} received. Shutting down gracefully...`);
+      schedulerService.stop();
       server.close(async () => {
         await db.disconnect();
         console.log('👋 Server shut down');

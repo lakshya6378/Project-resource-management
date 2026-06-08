@@ -135,6 +135,8 @@ const getConfig = () => client.get('/admin/config');
 
 const updateConfig = (data) => client.put('/admin/config', data);
 
+const triggerScheduler = () => client.post('/admin/scheduler/trigger');
+
 // ═══════════════════════════════════════════════════════════════
 // MANAGER ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
@@ -201,6 +203,7 @@ module.exports = {
   // Admin - Config
   getConfig,
   updateConfig,
+  triggerScheduler,
   // Manager
   createAllocation,
   endAllocation,

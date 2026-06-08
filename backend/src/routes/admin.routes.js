@@ -5,6 +5,7 @@ const adminUserController = require('../controllers/AdminUserController');
 const adminEmployeeController = require('../controllers/AdminEmployeeController');
 const adminProjectController = require('../controllers/AdminProjectController');
 const adminConfigController = require('../controllers/AdminConfigController');
+const adminSchedulerController = require('../controllers/AdminSchedulerController');
 const { validate } = require('../middleware/validate');
 const { createUserSchema, resetPasswordSchema } = require('../validators/userSchemas');
 const {
@@ -703,5 +704,23 @@ router.get('/config', adminConfigController.getConfig);
  *         description: Configuration updated
  */
 router.put('/config', validate(updateConfigSchema), adminConfigController.updateConfig);
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULER & AUTOMATIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /admin/scheduler/trigger:
+ *   post:
+ *     tags: [Admin - Scheduler]
+ *     summary: Manually trigger background jobs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Scheduler jobs triggered
+ */
+router.post('/scheduler/trigger', adminSchedulerController.triggerJobs);
 
 module.exports = router;

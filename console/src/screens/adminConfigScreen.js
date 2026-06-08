@@ -26,54 +26,69 @@ const configMenu = async () => {
         name: 'action',
         message: 'What would you like to do?',
         choices: [
-          { name: '✏️  Update configuration', value: 'update' },
+          { name: '✏️  Edit Configuration', value: 'edit' },
+          { name: '⚡ Trigger Scheduler Manually', value: 'trigger' },
           new inquirer.Separator(),
-          { name: '⬅️  Back to main menu', value: 'back' },
+          { name: '⬅️  Back', value: 'back' },
         ],
       },
     ]);
 
-    if (action === 'back') return;
-
-    if (action === 'update') {
-      const answers = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'llmProvider',
-          message: `LLM Provider (${config.llmProvider}):`,
-          choices: ['GEMINI', 'GROQ'],
-          default: config.llmProvider,
-        },
-        {
-          type: 'input',
-          name: 'llmApiKey',
-          message: 'API Key (leave empty to keep current):',
-        },
-        {
-          type: 'number',
-          name: 'schedulerIntervalHours',
-          message: `Scheduler interval in hours (${config.schedulerIntervalHours}):`,
-          default: config.schedulerIntervalHours,
-          validate: (v) => v >= 1 || 'Must be at least 1',
-        },
-        {
-          type: 'number',
-          name: 'maxWeeklyHours',
-          message: `Max weekly hours (${config.maxWeeklyHours}):`,
-          default: config.maxWeeklyHours,
-          validate: (v) => (v >= 1 && v <= 168) || 'Must be 1-168',
-        },
-      ]);
-
-      // Remove empty API key to keep current
-      const updateData = { ...answers };
-      if (!updateData.llmApiKey) {
-        delete updateData.llmApiKey;
-      }
-
-      await api.updateConfig(updateData);
-      ui.success('Configuration updated');
+    switch (action) {
+      case 'edit':
+        await editConfigScreen(config);
+        break;
+      case 'trigger':
+        await api.triggerScheduler();
+        ui.success('Scheduler jobs triggered successfully in the background');
+        break;
+      case 'back':
+        return;
     }
+  } catch (err) {
+    ui.error(err.message);
+  }
+};
+
+const editConfigScreen = async (config) => {
+  try {
+    const answers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'llmProvider',
+        message: `LLM Provider (${config.llmProvider}):`,
+        choices: ['GEMINI', 'GROQ'],
+        default: config.llmProvider,
+      },
+      {
+        type: 'input',
+        name: 'llmApiKey',
+        message: 'API Key (leave empty to keep current):',
+      },
+      {
+        type: 'number',
+        name: 'schedulerIntervalHours',
+        message: `Scheduler interval in hours (${config.schedulerIntervalHours}):`,
+        default: config.schedulerIntervalHours,
+        validate: (v) => v >= 1 || 'Must be at least 1',
+      },
+      {
+        type: 'number',
+        name: 'maxWeeklyHours',
+        message: `Max weekly hours (${config.maxWeeklyHours}):`,
+        default: config.maxWeeklyHours,
+        validate: (v) => (v >= 1 && v <= 168) || 'Must be 1-168',
+      },
+    ]);
+
+    // Remove empty API key to keep current
+    const updateData = { ...answers };
+    if (!updateData.llmApiKey) {
+      delete updateData.llmApiKey;
+    }
+
+    await api.updateConfig(updateData);
+    ui.success('Configuration updated');
   } catch (err) {
     ui.error(err.message);
   }
