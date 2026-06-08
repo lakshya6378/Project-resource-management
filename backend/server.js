@@ -13,6 +13,8 @@ const { checkForcePasswordChange, verifyToken, requireRole } = require('./src/mi
 // ─── Route Imports ───────────────────────────────────────────
 const authRoutes = require('./src/routes/auth.routes');
 const adminRoutes = require('./src/routes/admin.routes');
+const managerRoutes = require('./src/routes/manager.routes');
+const employeeRoutes = require('./src/routes/employee.routes');
 
 // ─── Express App Setup ───────────────────────────────────────
 const app = express();
@@ -59,8 +61,8 @@ app.use('/api/auth', authRoutes);
 
 // Protected routes
 app.use('/api/admin', verifyToken, requireRole('ADMIN'), checkForcePasswordChange, adminRoutes);
-// app.use('/api/manager', verifyToken, checkForcePasswordChange, managerRoutes);
-// app.use('/api/employee', verifyToken, checkForcePasswordChange, employeeRoutes);
+app.use('/api/manager', verifyToken, requireRole('MANAGER'), checkForcePasswordChange, managerRoutes);
+app.use('/api/employee', verifyToken, requireRole('EMPLOYEE'), checkForcePasswordChange, employeeRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────
 app.use((req, res, next) => {
