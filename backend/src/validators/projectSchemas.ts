@@ -20,6 +20,7 @@ const createProjectSchema = z.object({
   endDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), 'Invalid end date'),
+  totalStoryPoints: z.number().min(0).optional().default(0),
 });
 
 const updateProjectSchema = z.object({
@@ -29,6 +30,7 @@ const updateProjectSchema = z.object({
   startDate: z.string().refine((val) => !isNaN(Date.parse(val)), 'Invalid date').optional(),
   endDate: z.string().refine((val) => !isNaN(Date.parse(val)), 'Invalid date').optional(),
   status: z.enum(Object.values(PROJECT_STATUS) as [string, ...string[]]).optional(),
+  totalStoryPoints: z.number().min(0).optional(),
 });
 
 const addMilestoneSchema = z.object({
@@ -39,6 +41,7 @@ const addMilestoneSchema = z.object({
   dueDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), 'Invalid due date'),
+  storyPoints: z.number().min(0).optional().default(0),
 });
 
 const updateMilestoneSchema = z.object({

@@ -1,6 +1,6 @@
-const inquirer = require('inquirer');
-const api = require('../apiClient');
-const ui = require('../ui');
+import inquirer from 'inquirer';
+import api from '../apiClient';
+import ui from '../ui';
 
 /**
  * Employee Console Screens
@@ -8,8 +8,9 @@ const ui = require('../ui');
  * Provides self-service for viewing allocations and submitting timesheets.
  */
 
-const employeeMainMenu = async () => {
-  ui.header('Employee Dashboard');
+const employeeMainMenu = async (user) => {
+  const dateStr = new Date().toLocaleString();
+  ui.header('Employee Panel', `User: ${user.fullName} | ${dateStr}`);
 
   const { action } = await inquirer.prompt([
     {
@@ -19,8 +20,7 @@ const employeeMainMenu = async () => {
       choices: [
         { name: '📋 View My Allocations', value: 'allocations' },
         { name: '⏱️  Submit Weekly Timesheet', value: 'submit_timesheet' },
-        { name: '📅 View Timesheet History', value: 'history' },
-        { name: '🔑 Change My Password', value: 'password' },
+        { name: '📅 View My Timesheet', value: 'history' },
         new inquirer.Separator(),
         { name: '🚪 Logout', value: 'logout' },
       ],
@@ -37,10 +37,6 @@ const employeeMainMenu = async () => {
     case 'history':
       await timesheetHistoryScreen();
       break;
-    case 'password':
-      const { changePasswordScreen } = require('./authScreens');
-      await changePasswordScreen();
-      break;
     case 'logout':
       try {
         await api.logout();
@@ -52,7 +48,7 @@ const employeeMainMenu = async () => {
       return 'LOGOUT';
   }
 
-  return employeeMainMenu();
+  return employeeMainMenu(user);
 };
 
 const myAllocationsScreen = async () => {
@@ -161,7 +157,7 @@ const submitTimesheetScreen = async () => {
 };
 
 const timesheetHistoryScreen = async () => {
-  ui.header('Timesheet History');
+  ui.header('My Timesheet');
 
   try {
     const result = await api.getMyTimesheets();
@@ -182,6 +178,46 @@ const timesheetHistoryScreen = async () => {
       ['week', 'hours', 'status', 'submitted'],
       { week: 'Week Start', hours: 'Total Hrs', status: 'Status', submitted: 'Submitted On' }
     );
+
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Options:',
+        choices: [
+          { name: '🔓 Request access for missing timesheet', value: 'request' },
+          { name: '⬅️  Back', value: 'back' },
+        ],
+      },
+    ]);
+
+    if (action === 'request') {
+      await requestAccessScreen();
+    }
+  } catch (err) {
+    ui.error(err.message);
+  }
+};
+
+const requestAccessScreen = async () => {
+  ui.header('Request Access to Missed Timesheet');
+  try {
+    const { weekStart, reason } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'weekStart',
+        message: 'Enter missed week start date (YYYY-MM-DD):',
+        validate: (v) => !isNaN(Date.parse(v)) || 'Invalid date',
+      },
+      {
+        type: 'input',
+        name: 'reason',
+        message: 'Reason for missing the timesheet:',
+        validate: (v) => v.length >= 5 || 'Please provide a valid reason (min 5 characters)',
+      }
+    ]);
+    await api.requestTimesheetAccess({ weekStart, reason });
+    ui.success('Timesheet access requested successfully. Awaiting manager approval.');
   } catch (err) {
     ui.error(err.message);
   }
@@ -194,4 +230,10 @@ const getMonday = (d) => {
   return new Date(d.setDate(diff));
 }
 
-module.exports = { employeeMainMenu };
+export { 
+  employeeMainMenu,
+  myAllocationsScreen,
+  submitTimesheetScreen,
+  timesheetHistoryScreen,
+  requestAccessScreen
+};

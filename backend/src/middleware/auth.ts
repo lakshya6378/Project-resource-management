@@ -63,7 +63,9 @@ const verifyToken = async (req, res, next) => {
     const decoded: any = jwt.verify(token, env.JWT_SECRET);
 
     // Verify user still exists and is active
-    const user = await User.findById(decoded.id).select('_id username role isActive forcePasswordChange');
+    const user = await User.findById(decoded.id)
+      .select('_id username roleId isActive forcePasswordChange')
+      .populate('roleId');
 
     if (!user) {
       return res.status(401).json({
@@ -78,12 +80,19 @@ const verifyToken = async (req, res, next) => {
         message: 'User account has been deactivated.',
       });
     }
+    
+    // We can also fetch permissions here if we want them on req.user globally,
+    // but for now we'll just populate the role.
+    const { RolePermission } = require('../models');
+    const rolePermissions = await RolePermission.find({ roleId: (user.roleId as any)._id }).populate('permissionId');
+    const permissions = rolePermissions.map(rp => (rp.permissionId as any).code);
 
     // Attach user info and raw token to request
     req.user = {
       id: user._id,
       username: user.username,
-      role: user.role,
+      role: (user.roleId as any).name,
+      permissions: permissions,
       isActive: user.isActive,
       forcePasswordChange: user.forcePasswordChange,
     };
@@ -175,7 +184,7 @@ const checkForcePasswordChange = (req, res, next) => {
 const generateToken = (user) => {
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id || user.id,
       username: user.username,
       role: user.role,
     },

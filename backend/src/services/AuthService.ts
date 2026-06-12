@@ -1,6 +1,7 @@
 import { userRepository } from '../repositories';
 import { generateToken, blacklistToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { ERROR_MESSAGES } from '../config/errorMessages';
 
 /**
  * AuthService — Authentication Business Logic
@@ -22,20 +23,28 @@ class AuthService {
     const user = await userRepository.findByUsername(username);
 
     if (!user) {
-      throw new AppError('Invalid username or password', 401);
+      throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS, 401);
     }
 
     if (!user.isActive) {
-      throw new AppError('Your account has been deactivated. Contact your administrator.', 401);
+      throw new AppError(ERROR_MESSAGES.ACCOUNT_DEACTIVATED, 401);
     }
 
     const isMatch = await (user as any).comparePassword(password);
 
     if (!isMatch) {
-      throw new AppError('Invalid username or password', 401);
+      throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS, 401);
     }
 
-    const token = generateToken(user);
+    const { RolePermission } = require('../models');
+    const rolePermissions = await RolePermission.find({ roleId: user.roleId._id }).populate('permissionId');
+    const permissions = rolePermissions ? rolePermissions.map(rp => rp.permissionId?.code).filter(Boolean) : [];
+
+    const token = generateToken({
+      id: user._id,
+      username: user.username,
+      role: (user.roleId as any).name,
+    });
 
     return {
       token,
@@ -43,7 +52,8 @@ class AuthService {
         id: user._id,
         username: user.username,
         fullName: user.fullName,
-        role: user.role,
+        role: (user.roleId as any).name,
+        permissions,
         forcePasswordChange: user.forcePasswordChange,
       },
     };
@@ -62,19 +72,19 @@ class AuthService {
     const user = await userRepository.findByIdWithPassword(userId);
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, 404);
     }
 
     // Verify current password
     const isMatch = await (user as any).comparePassword(currentPassword);
 
     if (!isMatch) {
-      throw new AppError('Current password is incorrect', 400);
+      throw new AppError(ERROR_MESSAGES.CURRENT_PASSWORD_INCORRECT, 400);
     }
 
     // Prevent reusing the same password
     if (currentPassword === newPassword) {
-      throw new AppError('New password must be different from the current password', 400);
+      throw new AppError(ERROR_MESSAGES.PASSWORD_REUSE, 400);
     }
 
     // Update password — the pre-save hook will hash it

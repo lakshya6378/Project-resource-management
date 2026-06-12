@@ -1,48 +1,26 @@
 import { userRepository } from '../repositories';
 import { AppError } from '../middleware/errorHandler';
 import { ROLES } from '../config/constants';
+import { ERROR_MESSAGES } from '../config/errorMessages';
 
-/**
- * UserService — Admin User Account Management
- *
- * Handles creating, listing, deactivating, reactivating, and
- * resetting passwords for user accounts. Only accessible by Admins.
- *
- * Separation of Concerns: this service handles USER ACCOUNTS (login credentials).
- * EmployeeService handles EMPLOYEE PROFILES (department, skills, allocations).
- */
 class UserService {
-  /**
-   * Create a new user account.
-   *
-   * Business rules:
-   *   - Username must be unique
-   *   - Email must be unique
-   *   - Temporary password is set; forcePasswordChange = true
-   *   - The user who creates the account is tracked via createdBy
-   *
-   * @param {Object} dto - { fullName, email, username, tempPassword, role }
-   * @param {string} createdById - ID of the admin creating the account
-   * @returns {Object} Created user (without passwordHash)
-   */
   async createUser(dto, createdById) {
-    const { fullName, email, username, tempPassword, role } = dto;
+    const { fullName, email, username, tempPassword, roleId } = dto;
 
-    // Check for duplicate username
     const existingUsername = await userRepository.findByUsername(username);
     if (existingUsername) {
-      throw new AppError(`Username '${username}' already exists`, 409);
+      throw new AppError(ERROR_MESSAGES.USERNAME_EXISTS, 409);
     }
 
-    // Check for duplicate email
     const existingEmail = await userRepository.findByEmail(email);
     if (existingEmail) {
-      throw new AppError(`Email '${email}' already exists`, 409);
+      throw new AppError(ERROR_MESSAGES.EMAIL_EXISTS, 409);
     }
 
-    // Validate role
-    if (!Object.values(ROLES).includes(role)) {
-      throw new AppError(`Invalid role: ${role}`, 400);
+    const { Role } = require('../models');
+    const roleExists = await Role.findById(roleId);
+    if (!roleExists) {
+      throw new AppError(ERROR_MESSAGES.INVALID_ROLE_ID, 400);
     }
 
     const user = await userRepository.create({
@@ -50,11 +28,15 @@ class UserService {
       email: email.toLowerCase(),
       username: username.toLowerCase(),
       passwordHash: tempPassword, // pre-save hook will hash this
-      role,
+      roleId,
       isActive: true,
       forcePasswordChange: true,
       createdBy: createdById,
     });
+
+    // Send welcome email with credentials
+    const emailService = require('./EmailService').default;
+    await emailService.sendAccountCredentialsEmail(user, tempPassword);
 
     return user;
   }

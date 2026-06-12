@@ -27,6 +27,11 @@ const milestoneSchema = new mongoose.Schema(
       },
       default: MILESTONE_STATUS.NOT_STARTED,
     },
+    storyPoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Story points cannot be negative'],
+    },
   },
   {
     _id: true, // Each milestone gets its own _id for individual updates
@@ -87,6 +92,11 @@ const projectSchema = new mongoose.Schema(
         message: 'Health status must be one of: ON_TRACK, ATTENTION, AT_RISK',
       },
       default: HEALTH_STATUS.ON_TRACK,
+    },
+    totalStoryPoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Total story points cannot be negative'],
     },
     milestones: {
       type: [milestoneSchema],

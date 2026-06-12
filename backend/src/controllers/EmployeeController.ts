@@ -12,12 +12,14 @@ import { AppError } from '../middleware/errorHandler';
  *   - Submit their own timesheets
  *   - View their timesheet history
  */
+import resourceService from '../services/ResourceService';
+
 class EmployeeController {
   /**
    * Helper: get the employee record linked to the current user.
    */
   async _getMyEmployee(userId) {
-    const employee = await employeeRepository.findByUserId(userId);
+    const employee = await resourceService.getEmployeeById(userId);
     if (!employee) {
       throw new AppError('No employee profile linked to your account', 404);
     }

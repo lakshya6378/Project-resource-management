@@ -19,10 +19,10 @@ import mongoose from 'mongoose';
  */
 const allocationSchema = new mongoose.Schema(
   {
-    employeeId: {
+    resourceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee',
-      required: [true, 'Employee ID is required'],
+      ref: 'User',
+      required: [true, 'Resource ID is required'],
     },
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -59,8 +59,8 @@ const allocationSchema = new mongoose.Schema(
 );
 
 // ─── Compound Indexes (Performance Critical) ──────────────────
-// Overlap check: find all active allocations for an employee in a date range
-allocationSchema.index({ employeeId: 1, fromDate: 1, toDate: 1, isActive: 1 });
+// Overlap check: find all active allocations for a resource in a date range
+allocationSchema.index({ resourceId: 1, fromDate: 1, toDate: 1, isActive: 1 });
 // Project team view: find all active allocations for a project
 allocationSchema.index({ projectId: 1, isActive: 1 });
 

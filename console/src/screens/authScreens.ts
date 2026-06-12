@@ -1,6 +1,6 @@
-const inquirer = require('inquirer');
-const api = require('./apiClient');
-const ui = require('./ui');
+import inquirer from 'inquirer';
+import api from '../apiClient';
+import ui from '../ui';
 
 /**
  * Auth Screens — Login and Password Change flows.
@@ -44,7 +44,7 @@ const loginScreen = async () => {
     // Check if forced password change is required
     if (user.forcePasswordChange) {
       ui.warn('You must change your password before proceeding.');
-      await changePasswordScreen();
+      await changePasswordScreen(true);
 
       // Re-login with new password to get fresh token
       ui.info('Please log in again with your new password.');
@@ -72,8 +72,24 @@ const loginScreen = async () => {
  * Change password screen.
  * Prompts for current and new password with confirmation.
  */
-const changePasswordScreen = async () => {
+const changePasswordScreen = async (isForced = false) => {
   ui.header('Change Password');
+
+  if (!isForced) {
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Do you want to proceed?',
+        choices: [
+          { name: 'Proceed with Password Change', value: 'proceed' },
+          { name: 'Go Back', value: 'back' },
+        ],
+      },
+    ]);
+
+    if (action === 'back') return;
+  }
 
   const { currentPassword, newPassword } = await inquirer.prompt([
     {
@@ -86,12 +102,13 @@ const changePasswordScreen = async () => {
     {
       type: 'password',
       name: 'newPassword',
-      message: 'New password (min 8, 1 uppercase, 1 number):',
+      message: 'New password (min 8, 1 uppercase, 1 number, 1 special char):',
       mask: '*',
       validate: (val) => {
         if (val.length < 8) return 'Must be at least 8 characters';
         if (!/[A-Z]/.test(val)) return 'Must contain at least one uppercase letter';
         if (!/[0-9]/.test(val)) return 'Must contain at least one number';
+        if (!/[^A-Za-z0-9]/.test(val)) return 'Must contain at least one special character';
         return true;
       },
     },
@@ -122,4 +139,4 @@ const changePasswordScreen = async () => {
   }
 };
 
-module.exports = { loginScreen, changePasswordScreen };
+export { loginScreen, changePasswordScreen };

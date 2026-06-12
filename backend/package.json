@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node server.ts",
     "start": "ts-node server.ts",
-    "seed": "node seeds/adminSeed.js",
+    "seed": "ts-node seeds/seedRbac.ts",
     "test": "jest --verbose --forceExit --detectOpenHandles"
   },
   "keywords": [
@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "axios": "^1.17.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

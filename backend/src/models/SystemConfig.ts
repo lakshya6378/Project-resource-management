@@ -19,7 +19,7 @@ const systemConfigSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: Object.values(LLM_PROVIDERS),
-        message: 'LLM provider must be one of: GEMINI, GROQ',
+        message: 'LLM provider must be one of: GEMINI, GROQ, LOCAL_GEMMA',
       },
       default: LLM_PROVIDERS.GEMINI,
     },

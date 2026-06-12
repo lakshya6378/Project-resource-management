@@ -1,28 +1,34 @@
-const inquirer = require('inquirer');
-const api = require('../apiClient');
-const ui = require('../ui');
+import inquirer from 'inquirer';
+import api from '../apiClient';
+import ui from '../ui';
 
 /**
  * Admin Project Management Screens
  */
 
-const projectMenu = async () => {
-  ui.header('Admin — Project Management');
+const projectMenu = async (perms: string[] = []) => {
+  ui.header('Project Management');
+
+  const choices: any[] = [
+    { name: '📋 List all projects', value: 'list' },
+    { name: '📄 View project detail', value: 'detail' },
+  ];
+
+  if (perms.includes('MANAGE_PROJECTS_ALL')) {
+    choices.push({ name: '➕ Create new project', value: 'create' });
+    choices.push({ name: '✏️  Update project', value: 'update' });
+    choices.push({ name: '🏁 Manage milestones', value: 'milestones' });
+  }
+
+  choices.push(new inquirer.Separator());
+  choices.push({ name: '⬅️  Back to main menu', value: 'back' });
 
   const { action } = await inquirer.prompt([
     {
       type: 'list',
       name: 'action',
       message: 'Select an action:',
-      choices: [
-        { name: '📋 List all projects', value: 'list' },
-        { name: '➕ Create new project', value: 'create' },
-        { name: '📄 View project detail', value: 'detail' },
-        { name: '✏️  Update project', value: 'update' },
-        { name: '🏁 Manage milestones', value: 'milestones' },
-        new inquirer.Separator(),
-        { name: '⬅️  Back to main menu', value: 'back' },
-      ],
+      choices,
     },
   ]);
 
@@ -46,33 +52,18 @@ const projectMenu = async () => {
       return;
   }
 
-  return projectMenu();
+  return projectMenu(perms);
 };
 
-const listProjectsScreen = async () => {
+const listProjectsScreen = async (currentStatusFilter: string = '') => {
   try {
-    const { filterStatus } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'filterStatus',
-        message: 'Filter by status:',
-        choices: [
-          { name: 'All', value: '' },
-          { name: 'PLANNED', value: 'PLANNED' },
-          { name: 'ACTIVE', value: 'ACTIVE' },
-          { name: 'ON_HOLD', value: 'ON_HOLD' },
-          { name: 'COMPLETED', value: 'COMPLETED' },
-        ],
-      },
-    ]);
-
-    const params = {};
-    if (filterStatus) params.status = filterStatus;
+    const params: any = {};
+    if (currentStatusFilter) params.status = currentStatusFilter;
 
     const result = await api.listProjects(params);
     const projects = result.data;
 
-    ui.header('Projects');
+    ui.header(currentStatusFilter ? `Projects (Filter: ${currentStatusFilter})` : 'All Projects');
     ui.info(`Total: ${projects.length}`);
 
     ui.table(
@@ -91,6 +82,36 @@ const listProjectsScreen = async () => {
         start: 'Start', end: 'End', milestones: '#MS', id: 'ID',
       }
     );
+
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Options:',
+        choices: [
+          { name: '🔍 Filter by Status', value: 'filter' },
+          { name: '⬅️  Exit / Back', value: 'exit' },
+        ],
+      },
+    ]);
+
+    if (action === 'filter') {
+      const { filterStatus } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'filterStatus',
+          message: 'Filter by status:',
+          choices: [
+            { name: 'All', value: '' },
+            { name: 'PLANNED', value: 'PLANNED' },
+            { name: 'ACTIVE', value: 'ACTIVE' },
+            { name: 'ON_HOLD', value: 'ON_HOLD' },
+            { name: 'COMPLETED', value: 'COMPLETED' },
+          ],
+        },
+      ]);
+      return listProjectsScreen(filterStatus);
+    }
   } catch (err) {
     ui.error(err.message);
   }
@@ -100,14 +121,11 @@ const createProjectScreen = async () => {
   ui.header('Create New Project');
 
   try {
-    // Fetch managers for selection
     const usersResult = await api.listUsers();
-    const managers = usersResult.data.users.filter(
-      (u) => u.role === 'MANAGER' && u.isActive
-    );
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
 
     if (managers.length === 0) {
-      ui.warn('No managers available. Create a MANAGER user first.');
+      ui.error('No managers found! Please create a user with MANAGER role first.');
       return;
     }
 
@@ -126,30 +144,64 @@ const createProjectScreen = async () => {
       {
         type: 'list',
         name: 'managerId',
-        message: 'Assign manager:',
-        choices: managers.map((m) => ({
-          name: `${m.fullName} (${m.username})`,
-          value: m._id,
-        })),
+        message: 'Select Project Manager:',
+        choices: managers.map(m => ({ name: m.fullName, value: m._id })),
+      },
+      {
+        type: 'list',
+        name: 'status',
+        message: 'Project Status:',
+        choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
+      },
+      {
+        type: 'number',
+        name: 'totalStoryPoints',
+        message: 'Total Story Points (optional, default 0):',
+        default: 0,
       },
       {
         type: 'input',
         name: 'startDate',
-        message: 'Start date (YYYY-MM-DD):',
-        validate: (v) => !isNaN(Date.parse(v)) || 'Invalid date format',
+        message: 'Start date (DD-MM-YYYY):',
+        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
       },
       {
         type: 'input',
         name: 'endDate',
-        message: 'End date (YYYY-MM-DD):',
-        validate: (v) => !isNaN(Date.parse(v)) || 'Invalid date format',
+        message: 'End date (DD-MM-YYYY):',
+        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
       },
     ]);
+
+    // parse dates DD-MM-YYYY
+    const parseDate = (dStr) => {
+      const [dd, mm, yyyy] = dStr.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    };
+
+    if (answers.startDate) answers.startDate = parseDate(answers.startDate);
+    if (answers.endDate) answers.endDate = parseDate(answers.endDate);
+
+    const { confirmAction } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'confirmAction',
+        message: 'Options:',
+        choices: [
+          { name: '💾 Save', value: 'save' },
+          { name: '⬅️  Back', value: 'back' },
+        ],
+      },
+    ]);
+
+    if (confirmAction === 'back') return;
+
+    if (!answers.managerId) delete answers.managerId;
 
     const result = await api.createProject(answers);
     ui.success(`Project '${result.data.name}' created (ID: ${result.data._id})`);
   } catch (err) {
-    ui.error(err.message);
+    ui.error(err.response?.data?.message || err.message);
   }
 };
 
@@ -195,8 +247,20 @@ const projectDetailScreen = async () => {
 
 const updateProjectScreen = async () => {
   try {
-    const project = await selectProject('Select project to update:');
-    if (!project) return;
+    const { projectId } = await inquirer.prompt([
+      { type: 'input', name: 'projectId', message: 'Enter Project ID to update:' }
+    ]);
+
+    const result = await api.listProjects();
+    const project = result.data.find(p => p._id === projectId);
+
+    if (!project) {
+      ui.error('Project not found with that ID.');
+      return;
+    }
+
+    const usersResult = await api.listUsers();
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
 
     const answers = await inquirer.prompt([
       {
@@ -213,12 +277,43 @@ const updateProjectScreen = async () => {
       },
       {
         type: 'list',
+        name: 'managerId',
+        message: `Manager (Currently: ${project.managerId?.fullName || 'none'}):`,
+        choices: [
+          ...managers.map(m => ({ name: m.fullName, value: m._id })),
+          { name: 'Keep current / No manager', value: '' }
+        ],
+      },
+      {
+        type: 'list',
         name: 'status',
         message: `Status (${project.status}):`,
         choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
         default: project.status,
       },
+      {
+        type: 'number',
+        name: 'totalStoryPoints',
+        message: `Total Story Points (${project.totalStoryPoints || 0}):`,
+        default: project.totalStoryPoints || 0,
+      },
     ]);
+
+    const { confirmAction } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'confirmAction',
+        message: 'Options:',
+        choices: [
+          { name: '💾 Save', value: 'save' },
+          { name: '⬅️  Back', value: 'back' },
+        ],
+      },
+    ]);
+
+    if (confirmAction === 'back') return;
+
+    if (!answers.managerId) delete answers.managerId;
 
     await api.updateProject(project._id, answers);
     ui.success('Project updated');
@@ -354,4 +449,4 @@ const selectProject = async (message) => {
   return projects.find((p) => p._id === projId);
 };
 
-module.exports = { projectMenu };
+export { projectMenu };

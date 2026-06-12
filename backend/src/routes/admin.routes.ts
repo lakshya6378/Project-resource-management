@@ -2,17 +2,31 @@ import express from 'express';
 const router = express.Router();
 
 import adminUserController from '../controllers/AdminUserController';
-import adminEmployeeController from '../controllers/AdminEmployeeController';
+import adminResourceController from '../controllers/AdminResourceController';
 import adminProjectController from '../controllers/AdminProjectController';
 import adminConfigController from '../controllers/AdminConfigController';
 import adminSchedulerController from '../controllers/AdminSchedulerController';
+import adminSkillsController from '../controllers/AdminSkillsController';
+import adminOrgController from '../controllers/AdminOrgController';
 import { validate } from '../middleware/validate';
+
+// --- Org API ---
+router.get('/departments', adminOrgController.listDepartments);
+router.get('/designations', adminOrgController.listDesignations);
+
+// --- Skills API ---
+router.get('/skills/categories', adminSkillsController.listSkillCategories);
+router.post('/skills/categories', adminSkillsController.createSkillCategory);
+router.get('/skills', adminSkillsController.listSkills);
+router.post('/skills', adminSkillsController.createSkill);
+
 import { createUserSchema, resetPasswordSchema } from '../validators/userSchemas';
 import {
   createEmployeeSchema,
   updateEmployeeSchema,
   addSkillSchema,
   updateSkillSchema,
+  assignManagerSchema,
 } from '../validators/employeeSchemas';
 import {
   createProjectSchema,
@@ -73,6 +87,20 @@ import { updateConfigSchema } from '../validators/configSchemas';
  *         description: Username or email already exists
  */
 router.post('/users', validate(createUserSchema), adminUserController.createUser);
+
+/**
+ * @swagger
+ * /admin/roles:
+ *   get:
+ *     tags: [Admin - Users]
+ *     summary: List all roles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Roles listed successfully
+ */
+router.get('/roles', adminUserController.listRoles);
 
 /**
  * @swagger
@@ -175,11 +203,11 @@ router.post('/users/:id/reset-password', validate(resetPasswordSchema), adminUse
 
 /**
  * @swagger
- * /admin/employees:
+ * /admin/resources:
  *   post:
- *     tags: [Admin - Employees]
- *     summary: Create an employee profile
- *     description: Links an employee profile to an existing user account. User must have EMPLOYEE or MANAGER role.
+ *     tags: [Admin - Resources]
+ *     summary: Create a resource profile
+ *     description: Links a resource profile to an existing user account. User must have EMPLOYEE or MANAGER role.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -207,22 +235,22 @@ router.post('/users/:id/reset-password', validate(resetPasswordSchema), adminUse
  *                 example: Senior Developer
  *     responses:
  *       201:
- *         description: Employee profile created
+ *         description: Resource profile created
  *       400:
  *         description: Cannot create profile for admin accounts
  *       404:
  *         description: User account not found
  *       409:
- *         description: Employee profile already exists for this user
+ *         description: Resource profile already exists for this user
  */
-router.post('/employees', validate(createEmployeeSchema), adminEmployeeController.createEmployee);
+router.post('/resources', validate(createEmployeeSchema), adminResourceController.createEmployee);
 
 /**
  * @swagger
- * /admin/employees:
+ * /admin/resources:
  *   get:
- *     tags: [Admin - Employees]
- *     summary: List all employees
+ *     tags: [Admin - Resources]
+ *     summary: List all resources
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -237,16 +265,31 @@ router.post('/employees', validate(createEmployeeSchema), adminEmployeeControlle
  *           type: string
  *     responses:
  *       200:
- *         description: Employees retrieved with counts (total/allocated/bench)
+ *         description: Resources retrieved with counts (total/allocated/bench)
  */
-router.get('/employees', adminEmployeeController.listEmployees);
+router.get('/resources', adminResourceController.listEmployees);
 
 /**
  * @swagger
- * /admin/employees/{id}:
+ * /admin/allocations:
  *   get:
- *     tags: [Admin - Employees]
- *     summary: Get a single employee
+ *     tags: [Admin - Allocations]
+ *     summary: List all company allocations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all active and past allocations
+ */
+import adminAllocationController from '../controllers/AdminAllocationController';
+router.get('/allocations', adminAllocationController.listAllAllocations);
+
+/**
+ * @swagger
+ * /admin/resources/{id}:
+ *   get:
+ *     tags: [Admin - Resources]
+ *     summary: Get a single resource
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -257,18 +300,18 @@ router.get('/employees', adminEmployeeController.listEmployees);
  *           type: string
  *     responses:
  *       200:
- *         description: Employee details
+ *         description: Resource details
  *       404:
- *         description: Employee not found
+ *         description: Resource not found
  */
-router.get('/employees/:id', adminEmployeeController.getEmployee);
+router.get('/resources/:id', adminResourceController.getEmployee);
 
 /**
  * @swagger
- * /admin/employees/{id}:
+ * /admin/resources/{id}:
  *   put:
- *     tags: [Admin - Employees]
- *     summary: Update employee profile
+ *     tags: [Admin - Resources]
+ *     summary: Update resource profile
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -292,19 +335,53 @@ router.get('/employees/:id', adminEmployeeController.getEmployee);
  *                 type: string
  *     responses:
  *       200:
- *         description: Employee updated
+ *         description: Resource updated
  *       404:
- *         description: Employee not found
+ *         description: Resource not found
  */
-router.put('/employees/:id', validate(updateEmployeeSchema), adminEmployeeController.updateEmployee);
+router.put('/resources/:id', validate(updateEmployeeSchema), adminResourceController.updateEmployee);
 
 /**
  * @swagger
- * /admin/employees/{id}/deactivate:
+ * /admin/resources/{id}/assign-manager:
+ *   put:
+ *     tags: [Admin - Resources]
+ *     summary: Assign a manager to a resource
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [managerId]
+ *             properties:
+ *               managerId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Manager assigned
+ *       400:
+ *         description: Invalid manager ID
+ *       404:
+ *         description: Resource not found
+ */
+router.put('/resources/:id/assign-manager', validate(assignManagerSchema), adminResourceController.assignManager);
+
+/**
+ * @swagger
+ * /admin/resources/{id}/deactivate:
  *   patch:
- *     tags: [Admin - Employees]
- *     summary: Deactivate an employee
- *     description: Ends all active allocations, deactivates employee profile and linked user account.
+ *     tags: [Admin - Resources]
+ *     summary: Deactivate a resource
+ *     description: Ends all active allocations, deactivates resource profile and linked user account.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -315,22 +392,22 @@ router.put('/employees/:id', validate(updateEmployeeSchema), adminEmployeeContro
  *           type: string
  *     responses:
  *       200:
- *         description: Employee deactivated
+ *         description: Resource deactivated
  *       400:
  *         description: Already deactivated
  *       404:
- *         description: Employee not found
+ *         description: Resource not found
  */
-router.patch('/employees/:id/deactivate', adminEmployeeController.deactivateEmployee);
+router.patch('/resources/:id/deactivate', adminResourceController.deactivateEmployee);
 
 // ─── Skills ──────────────────────────────────────────────────
 
 /**
  * @swagger
- * /admin/employees/{id}/skills:
+ * /admin/resources/{id}/skills:
  *   get:
- *     tags: [Admin - Employees]
- *     summary: Get employee skills
+ *     tags: [Admin - Resources]
+ *     summary: Get resource skills
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -343,14 +420,14 @@ router.patch('/employees/:id/deactivate', adminEmployeeController.deactivateEmpl
  *       200:
  *         description: Skills list
  */
-router.get('/employees/:id/skills', adminEmployeeController.getSkills);
+router.get('/resources/:id/skills', adminResourceController.getSkills);
 
 /**
  * @swagger
- * /admin/employees/{id}/skills:
+ * /admin/resources/{id}/skills:
  *   post:
- *     tags: [Admin - Employees]
- *     summary: Add a skill to an employee
+ *     tags: [Admin - Resources]
+ *     summary: Add a skill to a resource
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -382,13 +459,13 @@ router.get('/employees/:id/skills', adminEmployeeController.getSkills);
  *       409:
  *         description: Duplicate skill name
  */
-router.post('/employees/:id/skills', validate(addSkillSchema), adminEmployeeController.addSkill);
+router.post('/resources/:id/skills', validate(addSkillSchema), adminResourceController.addSkill);
 
 /**
  * @swagger
- * /admin/employees/{id}/skills/{skillId}:
+ * /admin/resources/{id}/skills/{skillId}:
  *   put:
- *     tags: [Admin - Employees]
+ *     tags: [Admin - Resources]
  *     summary: Update skill proficiency
  *     security:
  *       - bearerAuth: []
@@ -418,14 +495,14 @@ router.post('/employees/:id/skills', validate(addSkillSchema), adminEmployeeCont
  *       200:
  *         description: Proficiency updated
  */
-router.put('/employees/:id/skills/:skillId', validate(updateSkillSchema), adminEmployeeController.updateSkillProficiency);
+router.put('/resources/:id/skills/:skillId', validate(updateSkillSchema), adminResourceController.updateSkillProficiency);
 
 /**
  * @swagger
- * /admin/employees/{id}/skills/{skillId}:
+ * /admin/resources/{id}/skills/{skillId}:
  *   delete:
- *     tags: [Admin - Employees]
- *     summary: Remove a skill from an employee
+ *     tags: [Admin - Resources]
+ *     summary: Remove a skill from a resource
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -443,7 +520,7 @@ router.put('/employees/:id/skills/:skillId', validate(updateSkillSchema), adminE
  *       200:
  *         description: Skill removed
  */
-router.delete('/employees/:id/skills/:skillId', adminEmployeeController.removeSkill);
+router.delete('/resources/:id/skills/:skillId', adminResourceController.removeSkill);
 
 // ═══════════════════════════════════════════════════════════════
 // PROJECT MANAGEMENT
@@ -690,7 +767,7 @@ router.get('/config', adminConfigController.getConfig);
  *             properties:
  *               llmProvider:
  *                 type: string
- *                 enum: [GEMINI, GROQ]
+ *                 enum: [GEMINI, GROQ, LOCAL_GEMMA]
  *               llmApiKey:
  *                 type: string
  *               schedulerIntervalHours:

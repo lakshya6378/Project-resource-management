@@ -38,13 +38,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
     },
-    role: {
-      type: String,
-      enum: {
-        values: Object.values(ROLES),
-        message: 'Role must be one of: ADMIN, MANAGER, EMPLOYEE',
-      },
-      required: [true, 'Role is required'],
+    roleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true,
     },
     isActive: {
       type: Boolean,

@@ -4,6 +4,7 @@ const router = express.Router();
 import managerAllocationController from '../controllers/ManagerAllocationController';
 import managerTimesheetController from '../controllers/ManagerTimesheetController';
 import managerProjectController from '../controllers/ManagerProjectController';
+import managerEmployeeController from '../controllers/ManagerEmployeeController';
 import { validate } from '../middleware/validate';
 import { createAllocationSchema } from '../validators/allocationSchemas';
 import { reviewAccessSchema } from '../validators/timesheetSchemas';
@@ -14,6 +15,24 @@ import { reviewAccessSchema } from '../validators/timesheetSchemas';
  * All routes require: verifyToken + requireRole('MANAGER') + checkForcePasswordChange
  * (applied in server.js when mounting this router)
  */
+
+// ═══════════════════════════════════════════════════════════════
+// EMPLOYEE / TEAM MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /manager/employees:
+ *   get:
+ *     tags: [Manager - Employees]
+ *     summary: Get all employees assigned to the manager's team
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Team employees retrieved
+ */
+router.get('/employees', managerEmployeeController.getTeamEmployees);
 
 // ═══════════════════════════════════════════════════════════════
 // ALLOCATION MANAGEMENT
@@ -184,6 +203,20 @@ router.post('/timesheets/:id/review-access', validate(reviewAccessSchema), manag
 
 /**
  * @swagger
+ * /manager/projects:
+ *   get:
+ *     tags: [Manager - Projects]
+ *     summary: List manager's projects
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Projects list
+ */
+router.get('/projects', managerProjectController.getMyProjects);
+
+/**
+ * @swagger
  * /manager/projects/{id}/suggest-team:
  *   get:
  *     tags: [Manager - AI]
@@ -203,5 +236,45 @@ router.post('/timesheets/:id/review-access', validate(reviewAccessSchema), manag
  *         description: AI not configured or no available staff
  */
 router.get('/projects/:id/suggest-team', managerProjectController.suggestTeam);
+
+/**
+ * @swagger
+ * /manager/projects/{id}/risk-summary:
+ *   get:
+ *     tags: [Manager - AI]
+ *     summary: Use AI to generate a risk summary for a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: AI Risk Summary generated successfully
+ */
+router.get('/projects/:id/risk-summary', managerProjectController.generateRiskSummary);
+
+/**
+ * @swagger
+ * /manager/ai/team-search:
+ *   get:
+ *     tags: [Manager - AI]
+ *     summary: Use AI to search the organisation for an ideal team
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: AI Team Search generated successfully
+ */
+router.get('/ai/team-search', managerProjectController.teamSearch);
 
 export default router;

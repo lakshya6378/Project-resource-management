@@ -188,8 +188,8 @@ class SchedulerService {
       const employees = await employeeRepository.findAll({ isActive: true });
       let sentCount = 0;
       for (const employee of employees) {
-        if ((employee as any).userId && (employee as any).userId.email) {
-          emailService.sendTimesheetReminderEmail((employee as any).userId).catch(console.error);
+        if ((employee as any)._id && (employee as any)._id.email) {
+          emailService.sendTimesheetReminderEmail((employee as any)._id).catch(console.error);
           sentCount++;
         }
       }

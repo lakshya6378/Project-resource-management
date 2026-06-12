@@ -49,10 +49,10 @@ const timesheetEntrySchema = new mongoose.Schema(
  */
 const timesheetSchema = new mongoose.Schema(
   {
-    employeeId: {
+    resourceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee',
-      required: [true, 'Employee ID is required'],
+      ref: 'User',
+      required: [true, 'Resource ID is required'],
     },
     weekStart: {
       type: Date,
@@ -95,8 +95,8 @@ const timesheetSchema = new mongoose.Schema(
   }
 );
 
-// ─── Unique Compound Index: One timesheet per employee per week ─
-timesheetSchema.index({ employeeId: 1, weekStart: 1 }, { unique: true });
+// ─── Unique Compound Index: One timesheet per resource per week ─
+timesheetSchema.index({ resourceId: 1, weekStart: 1 }, { unique: true });
 
 // ─── Transform: Clean JSON output ────────────────────────────
 timesheetSchema.set('toJSON', {

@@ -1,185 +1,119 @@
-import {
-  allocationRepository,
-  employeeRepository,
-  projectRepository,
-} from '../repositories';
 import { AppError } from '../middleware/errorHandler';
-import { PROJECT_STATUS, EMPLOYEE_STATUS } from '../config/constants';
+import Allocation from '../models/Allocation';
+import Project from '../models/Project';
+import ResourceProfile from '../models/ResourceProfile';
+import EmployeeProfile from '../models/EmployeeProfile';
 
-/**
- * AllocationService — Resource Allocation Management
- *
- * Handles creating and ending employee-to-project allocations.
- * Accessible by Managers (for their own projects) and Admins.
- *
- * Key business rules:
- *   - Total utilisation across overlapping allocations ≤ 100%
- *   - Only the project's assigned manager can allocate/end
- *   - Project must be ACTIVE or PLANNED
- *   - Employee must be active
- */
 class AllocationService {
-  /**
-   * Allocate an employee to a project.
-   *
-   * @param {Object} dto - { employeeId, projectId, utilisation, fromDate, toDate }
-   * @param {string} managerId - ID of the manager creating the allocation
-   */
-  async createAllocation(dto, managerId) {
+  async createAllocation(dto: any, managerId: string) {
     const { employeeId, projectId, utilisation, fromDate, toDate } = dto;
-
-    // Validate project
-    const project = await projectRepository.findById(projectId);
-    if (!project) {
-      throw new AppError('Project not found', 404);
+    
+    const project = await Project.findById(projectId);
+    if (!project) throw new AppError('Project not found', 404);
+    if (project.managerId.toString() !== managerId.toString()) {
+      throw new AppError('You are not authorized to allocate to this project', 403);
     }
-
-    // Verify manager owns this project
-    const projManagerId = (project as any).managerId?._id || (project as any).managerId;
-    if (projManagerId.toString() !== managerId.toString()) {
-      throw new AppError('You can only allocate resources to your own projects', 403);
+    if (project.status !== 'ACTIVE' && project.status !== 'PLANNED') {
+      throw new AppError('Can only allocate to active or planned projects', 400);
     }
-
-    // Project must be ACTIVE or PLANNED
-    if (![PROJECT_STATUS.ACTIVE, PROJECT_STATUS.PLANNED].includes(project.status as any)) {
-      throw new AppError(`Cannot allocate to a ${project.status} project`, 400);
+    
+    const overlapping = await Allocation.find({
+      resourceId: employeeId,
+      isActive: true,
+      $or: [
+        { fromDate: { $lte: new Date(toDate) }, toDate: { $gte: new Date(fromDate) } }
+      ]
+    });
+    
+    const totalUtil = overlapping.reduce((sum, a) => sum + (a.utilisation || 0), 0);
+    if (totalUtil + utilisation > 100) {
+      throw new AppError(`Over-allocation: resource is already at ${totalUtil}% utilisation during this period`, 400);
     }
-
-    // Validate employee
-    const employee = await employeeRepository.findById(employeeId);
-    if (!employee) {
-      throw new AppError('Employee not found', 404);
-    }
-    if (!employee.isActive) {
-      throw new AppError('Cannot allocate an inactive employee', 400);
-    }
-
-    // Date validation
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
-    if (from >= to) {
-      throw new AppError('From date must be before to date', 400);
-    }
-
-    // Check for over-allocation
-    const overlapping = await allocationRepository.findActiveByEmployeeInRange(
-      employeeId, from, to
-    );
-    const existingUtilisation = overlapping.reduce((sum, a) => sum + a.utilisation, 0);
-
-    if (existingUtilisation + utilisation > 100) {
-      throw new AppError(
-        `Over-allocation: employee already at ${existingUtilisation}% during this period. ` +
-        `Requested ${utilisation}% would total ${existingUtilisation + utilisation}%`,
-        400
-      );
-    }
-
-    const allocation = await allocationRepository.create({
-      employeeId,
+    
+    const allocation = await Allocation.create({
+      resourceId: employeeId,
       projectId,
       managerId,
       utilisation,
-      fromDate: from,
-      toDate: to,
-      isActive: true,
+      fromDate,
+      toDate,
+      isActive: true
     });
-
-    // Update employee status if on bench
-    if (employee.status === EMPLOYEE_STATUS.BENCH) {
-      await employeeRepository.update(employeeId, {
-        status: EMPLOYEE_STATUS.ALLOCATED,
-        currentUtilisation: existingUtilisation + utilisation,
-      });
-    } else {
-      await employeeRepository.update(employeeId, {
-        currentUtilisation: existingUtilisation + utilisation,
-      });
-    }
-
+    
+    await this._updateResourceCurrentUtilisation(employeeId);
     return allocation;
   }
 
-  /**
-   * End an allocation early.
-   *
-   * @param {string} allocationId
-   * @param {string} managerId - requesting manager
-   */
-  async endAllocation(allocationId, managerId) {
-    const allocation = await allocationRepository.findById(allocationId);
-    if (!allocation) {
-      throw new AppError('Allocation not found', 404);
+  async endAllocation(allocationId: string, managerId: string) {
+    const alloc = await Allocation.findById(allocationId);
+    if (!alloc) throw new AppError('Allocation not found', 404);
+    if (alloc.managerId.toString() !== managerId.toString()) {
+      throw new AppError('Not authorized', 403);
     }
-
-    if (!allocation.isActive) {
-      throw new AppError('Allocation is already ended', 400);
-    }
-
-    // Verify manager owns the project
-    const projManagerId = (allocation as any).projectId?.managerId || (allocation as any).projectId;
-    if (projManagerId.toString() !== managerId.toString()) {
-      throw new AppError('You can only end allocations on your own projects', 403);
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    await allocationRepository.endAllocation(allocationId, today);
-
-    // Recalculate employee utilisation
-    await this._recalculateUtilisation(allocation.employeeId._id || allocation.employeeId);
-
+    
+    alloc.isActive = false;
+    alloc.toDate = new Date();
+    await alloc.save();
+    
+    await this._updateResourceCurrentUtilisation(alloc.resourceId.toString());
     return { message: 'Allocation ended successfully' };
   }
 
-  /**
-   * List allocations for a project (manager's team view).
-   */
-  async listByProject(projectId, managerId) {
-    const project = await projectRepository.findById(projectId);
-    if (!project) {
-      throw new AppError('Project not found', 404);
-    }
-
-    const projManagerId = (project as any).managerId?._id || (project as any).managerId;
-    if (projManagerId.toString() !== managerId.toString()) {
-      throw new AppError('You can only view allocations for your own projects', 403);
-    }
-
-    return allocationRepository.findByProject(projectId);
-  }
-
-  /**
-   * List all allocations for an employee (resource view).
-   */
-  async listByEmployee(employeeId) {
-    const employee = await employeeRepository.findById(employeeId);
-    if (!employee) {
-      throw new AppError('Employee not found', 404);
-    }
-    return allocationRepository.findByEmployee(employeeId);
-  }
-
-  /**
-   * Recalculate an employee's current utilisation from active allocations.
-   * @private
-   */
-  async _recalculateUtilisation(employeeId) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const activeAllocations = await allocationRepository.findActiveByEmployeeOnDate(
-      employeeId, today
-    );
-
-    const totalUtil = activeAllocations.reduce((sum, a) => sum + a.utilisation, 0);
-    const status = totalUtil > 0 ? EMPLOYEE_STATUS.ALLOCATED : EMPLOYEE_STATUS.BENCH;
-
-    await employeeRepository.update(employeeId, {
-      currentUtilisation: totalUtil,
-      status,
+  async listByProject(projectId: string, managerId: string) {
+    const allocs = await Allocation.find({ projectId })
+      .populate('resourceId', 'fullName email username')
+      .lean();
+      
+    const resourceIds = allocs.map(a => (a.resourceId as any)._id);
+    const profiles = await EmployeeProfile.find({ _id: { $in: resourceIds } })
+      .populate('departmentId', 'name')
+      .lean();
+      
+    const deptMap: any = {};
+    profiles.forEach(p => {
+      deptMap[p._id.toString()] = (p.departmentId as any)?.name || 'N/A';
     });
+
+    return allocs.map(a => ({
+      ...a,
+      employeeId: {
+        _id: (a.resourceId as any)._id,
+        fullName: (a.resourceId as any).fullName,
+        department: deptMap[(a.resourceId as any)._id.toString()] || 'N/A'
+      }
+    }));
+  }
+
+  async listByEmployee(employeeId: string) {
+    return await Allocation.find({ resourceId: employeeId })
+      .populate('projectId', 'name status')
+      .sort({ fromDate: -1 });
+  }
+
+  async listAllAllocations() {
+    return await Allocation.find()
+      .populate({ path: 'resourceId', select: 'fullName email username' })
+      .populate({ path: 'projectId', select: 'name status' })
+      .populate({ path: 'managerId', select: 'fullName email' })
+      .sort({ fromDate: -1 });
+  }
+
+  async _updateResourceCurrentUtilisation(resourceId: string) {
+    const today = new Date();
+    const activeAllocations = await Allocation.find({
+      resourceId,
+      isActive: true,
+      fromDate: { $lte: today },
+      toDate: { $gte: today }
+    });
+    const currentUtil = activeAllocations.reduce((sum, a) => sum + (a.utilisation || 0), 0);
+    const status = currentUtil === 0 ? 'BENCH' : 'ALLOCATED';
+    
+    await ResourceProfile.findOneAndUpdate(
+      { _id: resourceId },
+      { currentUtilisation: currentUtil, status },
+      { new: true }
+    );
   }
 }
 

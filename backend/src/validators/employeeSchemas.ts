@@ -6,40 +6,18 @@ import { SKILL_CATEGORIES, PROFICIENCY_LEVELS } from '../config/constants';
  */
 
 const createEmployeeSchema = z.object({
-  userId: z
-    .string()
-    .min(1, 'User ID is required'),
-  fullName: z
-    .string()
-    .min(2, 'Full name must be at least 2 characters')
-    .trim(),
-  email: z
-    .string()
-    .email('Please provide a valid email')
-    .trim()
-    .toLowerCase(),
-  department: z
-    .string()
-    .min(1, 'Department is required')
-    .trim(),
-  designation: z
-    .string()
-    .min(1, 'Designation is required')
-    .trim(),
+  userId: z.string().length(24, 'Invalid User ID format'),
+  departmentId: z.string().length(24, 'Invalid Department ID format'),
+  designationId: z.string().length(24, 'Invalid Designation ID format'),
 });
 
 const updateEmployeeSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').trim().optional(),
-  department: z.string().min(1, 'Department is required').trim().optional(),
-  designation: z.string().min(1, 'Designation is required').trim().optional(),
+  departmentId: z.string().length(24, 'Invalid Department ID format').optional(),
+  designationId: z.string().length(24, 'Invalid Designation ID format').optional(),
 });
 
 const addSkillSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Skill name is required')
-    .trim(),
-  category: z.enum(Object.values(SKILL_CATEGORIES) as [string, ...string[]]),
+  skillId: z.string().length(24, 'Invalid Skill ID format'),
   proficiency: z.enum(Object.values(PROFICIENCY_LEVELS) as [string, ...string[]]),
 });
 
@@ -47,9 +25,14 @@ const updateSkillSchema = z.object({
   proficiency: z.enum(Object.values(PROFICIENCY_LEVELS) as [string, ...string[]]),
 });
 
+const assignManagerSchema = z.object({
+  managerId: z.string().min(1, 'Manager ID is required'),
+});
+
 export {
   createEmployeeSchema,
   updateEmployeeSchema,
   addSkillSchema,
   updateSkillSchema,
+  assignManagerSchema,
 };

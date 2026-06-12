@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 /**
  * API Client — HTTP wrapper for the PRM Tool backend.
@@ -7,7 +7,7 @@ const axios = require('axios');
  * for every backend endpoint. All methods return the API response data.
  *
  * Usage:
- *   const api = require('./apiClient');
+ *   import api from './apiClient';
  *   api.setToken(token);
  *   const users = await api.listUsers();
  */
@@ -17,7 +17,7 @@ const BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
 // Axios instance with defaults
 const client = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,8 +45,8 @@ client.interceptors.response.use(
     if (error.response) {
       const msg = error.response.data?.message || 'Unknown error';
       const err = new Error(msg);
-      err.statusCode = error.response.status;
-      err.errors = error.response.data?.errors || [];
+      (err as any).statusCode = error.response.status;
+      (err as any).errors = error.response.data?.errors || [];
       throw err;
     }
     throw new Error(`Network error: ${error.message}`);
@@ -73,6 +73,8 @@ const createUser = (data) => client.post('/admin/users', data);
 
 const listUsers = () => client.get('/admin/users');
 
+const listRoles = () => client.get('/admin/roles');
+
 const deactivateUser = (id) => client.patch(`/admin/users/${id}/deactivate`);
 
 const reactivateUser = (id) => client.patch(`/admin/users/${id}/reactivate`);
@@ -84,28 +86,42 @@ const resetPassword = (id, tempPassword) =>
 // ADMIN — EMPLOYEE ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
-const createEmployee = (data) => client.post('/admin/employees', data);
+const createEmployee = (data) => client.post('/admin/resources', data);
 
-const listEmployees = (params = {}) => client.get('/admin/employees', { params });
+const listEmployees = (params = {}) => client.get('/admin/resources', { params });
 
-const getEmployee = (id) => client.get(`/admin/employees/${id}`);
+const getEmployee = (id) => client.get(`/admin/resources/${id}`);
 
-const updateEmployee = (id, data) => client.put(`/admin/employees/${id}`, data);
+const updateEmployee = (id, data) => client.put(`/admin/resources/${id}`, data);
 
-const deactivateEmployee = (id) => client.patch(`/admin/employees/${id}/deactivate`);
+const deactivateEmployee = (id) => client.patch(`/admin/resources/${id}/deactivate`);
 
 // ─── Skills ──────────────────────────────────────────────────
 
-const getSkills = (employeeId) => client.get(`/admin/employees/${employeeId}/skills`);
+const getSkills = (employeeId) => client.get(`/admin/resources/${employeeId}/skills`);
 
 const addSkill = (employeeId, data) =>
-  client.post(`/admin/employees/${employeeId}/skills`, data);
+  client.post(`/admin/resources/${employeeId}/skills`, data);
 
 const updateSkillProficiency = (employeeId, skillId, proficiency) =>
-  client.put(`/admin/employees/${employeeId}/skills/${skillId}`, { proficiency });
+  client.put(`/admin/resources/${employeeId}/skills/${skillId}`, { proficiency });
 
 const removeSkill = (employeeId, skillId) =>
-  client.delete(`/admin/employees/${employeeId}/skills/${skillId}`);
+  client.delete(`/admin/resources/${employeeId}/skills/${skillId}`);
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN — ORG & GLOBAL SKILLS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const listDepartments = () => client.get('/admin/departments');
+const listDesignations = (departmentId?) => 
+  client.get('/admin/designations', { params: departmentId ? { departmentId } : {} });
+
+const listSkillCategories = () => client.get('/admin/skills/categories');
+const createSkillCategory = (data) => client.post('/admin/skills/categories', data);
+
+const listGlobalSkills = () => client.get('/admin/skills');
+const createGlobalSkill = (data) => client.post('/admin/skills', data);
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN — PROJECT ENDPOINTS
@@ -128,8 +144,10 @@ const updateMilestoneStatus = (projectId, milestoneId, status) =>
   client.put(`/admin/projects/${projectId}/milestones/${milestoneId}`, { status });
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN — SYSTEM CONFIG ENDPOINTS
+// ADMIN — SYSTEM CONFIG & ALLOCATIONS ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
+
+const listAllAllocations = () => client.get('/admin/allocations');
 
 const getConfig = () => client.get('/admin/config');
 
@@ -154,8 +172,20 @@ const getEmployeeAllocations = (employeeId) =>
 const getTeamTimesheets = (weekStart) =>
   client.get('/manager/timesheets/team', { params: { weekStart } });
 
-const suggestTeam = (projectId) =>
-  client.get(`/manager/projects/${projectId}/suggest-team`);
+const suggestTeam = (projectId, requirements?: string) =>
+  client.get(`/manager/projects/${projectId}/suggest-team`, { params: { requirements } });
+
+const generateRiskSummary = (projectId) =>
+  client.get(`/manager/projects/${projectId}/risk-summary`);
+
+const teamSearch = (query) => client.get('/manager/ai/team-search', { params: { query } });
+
+const reviewTimesheetAccess = (id, data) =>
+  client.post(`/manager/timesheets/${id}/review-access`, data);
+
+const getTeamEmployees = () => client.get('/manager/employees');
+
+const getMyManagerProjects = () => client.get('/manager/projects');
 
 // ═══════════════════════════════════════════════════════════════
 // EMPLOYEE ENDPOINTS
@@ -169,7 +199,9 @@ const getMyTimesheets = () => client.get('/employee/timesheets');
 
 const getTimesheetByWeek = (weekStart) => client.get(`/employee/timesheets/${weekStart}`);
 
-module.exports = {
+const requestTimesheetAccess = (data) => client.post('/employee/timesheets/access-request', data);
+
+export default {
   // Token management
   setToken,
   getToken,
@@ -181,6 +213,7 @@ module.exports = {
   // Admin - Users
   createUser,
   listUsers,
+  listRoles,
   deactivateUser,
   reactivateUser,
   resetPassword,
@@ -190,7 +223,14 @@ module.exports = {
   getEmployee,
   updateEmployee,
   deactivateEmployee,
-  // Admin - Skills
+  // Admin - Org & Global Skills
+  listDepartments,
+  listDesignations,
+  listSkillCategories,
+  createSkillCategory,
+  listGlobalSkills,
+  createGlobalSkill,
+  // Admin - Employee Skills
   getSkills,
   addSkill,
   updateSkillProficiency,
@@ -203,6 +243,8 @@ module.exports = {
   // Admin - Milestones
   addMilestone,
   updateMilestoneStatus,
+  // Admin - Allocations
+  listAllAllocations,
   // Admin - Config
   getConfig,
   updateConfig,
@@ -214,10 +256,16 @@ module.exports = {
   getEmployeeAllocations,
   getTeamTimesheets,
   suggestTeam,
+  generateRiskSummary,
+  reviewTimesheetAccess,
+  getTeamEmployees,
+  getMyManagerProjects,
+  teamSearch,
   // Employee
   getMyAllocations,
   submitTimesheet,
   getMyTimesheets,
   getTimesheetByWeek,
+  requestTimesheetAccess,
 };
 

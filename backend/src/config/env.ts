@@ -22,7 +22,7 @@ const envSchema = z.object({
   JWT_EXPIRY: z.string().default('24h'),
 
   // LLM
-  LLM_PROVIDER: z.enum(['GEMINI', 'GROQ']).default('GEMINI'),
+  LLM_PROVIDER: z.enum(['GEMINI', 'GROQ', 'LOCAL_GEMMA']).default('GEMINI'),
   LLM_API_KEY: z.string().default(''),
 
   // Scheduler
@@ -30,6 +30,7 @@ const envSchema = z.object({
 
   // Business Rules
   MAX_WEEKLY_HOURS: z.coerce.number().positive().default(40),
+  TIMESHEET_HISTORY_WEEKS: z.coerce.number().positive().default(12),
 });
 
 const parsed = envSchema.safeParse(process.env);

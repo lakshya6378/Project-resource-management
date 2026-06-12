@@ -4,11 +4,18 @@
   "description": "PRM Tool — Console (CLI) application for API testing and interaction",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "ts-node index.ts",
+    "dev": "ts-node index.ts"
   },
   "dependencies": {
     "axios": "^1.7.0",
     "chalk": "^4.1.2",
     "inquirer": "^8.2.6"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^25.9.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }

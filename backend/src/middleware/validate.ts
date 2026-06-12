@@ -20,8 +20,9 @@ const validate = (schema) => {
       const result = schema.safeParse(req.body);
 
       if (!result.success) {
-        const errors = result.error.errors.map((err) => ({
-          field: err.path.join('.'),
+        const rawErrors = result.error?.errors || result.error?.issues || [];
+        const errors = rawErrors.map((err) => ({
+          field: err.path ? err.path.join('.') : 'unknown',
           message: err.message,
         }));
 

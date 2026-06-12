@@ -9,11 +9,11 @@ import { User } from '../models';
  */
 class UserRepository {
   async findAll() {
-    return User.find().select('-passwordHash').sort({ createdAt: -1 });
+    return User.find().populate('roleId').select('-passwordHash').sort({ createdAt: -1 });
   }
 
   async findById(id) {
-    return User.findById(id).select('-passwordHash');
+    return User.findById(id).populate('roleId').select('-passwordHash');
   }
 
   /**
@@ -21,11 +21,11 @@ class UserRepository {
    * Used only during authentication — never exposed to controllers.
    */
   async findByIdWithPassword(id) {
-    return User.findById(id);
+    return User.findById(id).populate('roleId');
   }
 
   async findByUsername(username) {
-    return User.findOne({ username: username.toLowerCase() });
+    return User.findOne({ username: username.toLowerCase() }).populate('roleId');
   }
 
   async findByEmail(email) {

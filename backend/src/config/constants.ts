@@ -66,15 +66,16 @@ const SKILL_CATEGORIES = Object.freeze({
 
 // ─── Proficiency Levels ─────────────────────────────────────
 const PROFICIENCY_LEVELS = Object.freeze({
-  BEGINNER: 'Beginner',
-  INTERMEDIATE: 'Intermediate',
-  ADVANCED: 'Advanced',
+  BEGINNER: 'BEGINNER',
+  INTERMEDIATE: 'INTERMEDIATE',
+  EXPERT: 'EXPERT',
 });
 
 // ─── LLM Providers ──────────────────────────────────────────
 const LLM_PROVIDERS = Object.freeze({
   GEMINI: 'GEMINI',
   GROQ: 'GROQ',
+  LOCAL_GEMMA: 'LOCAL_GEMMA',
 });
 
 // ─── Activity Tags (for timesheets) ─────────────────────────

@@ -1,4 +1,4 @@
-const chalk = require('chalk');
+import chalk from 'chalk';
 
 /**
  * UI Helpers — Formatting and display utilities for the console app.
@@ -8,11 +8,19 @@ const chalk = require('chalk');
 
 const divider = () => console.log(chalk.gray('─'.repeat(60)));
 
-const header = (title) => {
+const header = (title: string, subtitle?: string) => {
   console.log('');
-  divider();
-  console.log(chalk.bold.cyan(`  ${title}`));
-  divider();
+  console.log('╔══════════════════════════════════════════════╗');
+
+  // Pad titles to 44 characters to fit inside the box
+  const padTitle = (str: string) => str.padEnd(44, ' ');
+
+  console.log(`║  ${padTitle(title)}║`);
+  if (subtitle) {
+    console.log(`║  ${padTitle(subtitle)}║`);
+  }
+  console.log('╚══════════════════════════════════════════════╝');
+  console.log('');
 };
 
 const success = (msg) => console.log(chalk.green(`  ✅ ${msg}`));
@@ -77,7 +85,7 @@ const detail = (obj, fields) => {
   }
 };
 
-module.exports = {
+export default {
   divider,
   header,
   success,
