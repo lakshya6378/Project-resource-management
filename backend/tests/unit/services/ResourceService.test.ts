@@ -26,6 +26,9 @@ jest.mock('../../../src/models', () => ({
   EmployeeSkill: {
     find: jest.fn(),
   },
+  Allocation: {
+    updateMany: jest.fn(),
+  },
 }));
 
 describe('ResourceService', () => {
@@ -71,11 +74,13 @@ describe('ResourceService', () => {
     });
 
     it('should throw error if user not found', async () => {
-      (User.findById as jest.Mock).mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+      (User.findById as jest.Mock).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(null)
+      });
 
       await expect(resourceService.createEmployee(dto))
         .rejects
-        .toThrow('User account not found');
+        .toThrow('User not found');
     });
 
     it('should throw error if employee profile already exists', async () => {
@@ -184,6 +189,9 @@ describe('ResourceService', () => {
 
       const mockResourceProfile = { _id: 'user_1', status: 'BENCH', currentUtilisation: 100, save: jest.fn() };
       (ResourceProfile.findById as jest.Mock).mockResolvedValue(mockResourceProfile);
+      
+      const { Allocation } = require('../../../src/models');
+      (Allocation.updateMany as jest.Mock).mockResolvedValue({ modifiedCount: 1 });
 
       await resourceService.deactivateEmployee('user_1');
 

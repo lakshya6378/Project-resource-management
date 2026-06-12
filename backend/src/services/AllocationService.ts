@@ -1,8 +1,5 @@
 import { AppError } from '../middleware/errorHandler';
-import Allocation from '../models/Allocation';
-import Project from '../models/Project';
-import ResourceProfile from '../models/ResourceProfile';
-import EmployeeProfile from '../models/EmployeeProfile';
+import { Allocation, Project, ResourceProfile, EmployeeProfile } from '../models';
 
 class AllocationService {
   async createAllocation(dto: any, managerId: string) {
@@ -64,7 +61,9 @@ class AllocationService {
       .populate('resourceId', 'fullName email username')
       .lean();
       
-    const resourceIds = allocs.map(a => (a.resourceId as any)._id);
+    const validAllocs = allocs.filter(a => a.resourceId);
+      
+    const resourceIds = validAllocs.map(a => (a.resourceId as any)._id);
     const profiles = await EmployeeProfile.find({ _id: { $in: resourceIds } })
       .populate('departmentId', 'name')
       .lean();
@@ -74,7 +73,7 @@ class AllocationService {
       deptMap[p._id.toString()] = (p.departmentId as any)?.name || 'N/A';
     });
 
-    return allocs.map(a => ({
+    return validAllocs.map(a => ({
       ...a,
       employeeId: {
         _id: (a.resourceId as any)._id,

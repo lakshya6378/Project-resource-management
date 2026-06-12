@@ -85,6 +85,16 @@ class TimesheetRepository {
     const count = await Timesheet.countDocuments({ resourceId: employeeId, weekStart });
     return count > 0;
   }
+
+  async update(id, updateData) {
+    return Timesheet.findByIdAndUpdate(id, updateData, { new: true });
+  }
+
+  async findMissed(weekStart) {
+    return Timesheet.find({ weekStart, status: { $in: ['MISSED', 'FROZEN'] } })
+      .populate('resourceId', 'fullName email')
+      .populate('entries.projectId', 'name');
+  }
 }
 
 export default new TimesheetRepository();

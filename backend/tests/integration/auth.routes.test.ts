@@ -125,7 +125,7 @@ describe('Auth Routes API', () => {
       const response = await request(app)
         .post('/api/auth/change-password')
         .set('Authorization', `Bearer ${token}`)
-        .send({ currentPassword: 'old', newPassword: 'newPassword123' })
+        .send({ currentPassword: 'old', newPassword: 'NewPassword123!' })
         .expect(200);
 
       expect(response.body.success).toBe(true);

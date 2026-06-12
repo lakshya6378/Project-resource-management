@@ -56,7 +56,7 @@ describe('Admin Routes API', () => {
         email: 'jane@example.com',
         username: 'janedoe',
         tempPassword: 'Password123!',
-        roleId: 'role_id'
+        roleId: '507f1f77bcf86cd799439011'
       };
       
       const mockResult = { _id: 'new_user', username: 'janedoe' };
@@ -88,9 +88,9 @@ describe('Admin Routes API', () => {
   describe('Resources Management', () => {
     it('should create a resource', async () => {
       const mockDto = {
-        userId: '123',
-        departmentId: 'dept',
-        designationId: 'desig'
+        userId: '507f1f77bcf86cd799439011',
+        departmentId: '507f1f77bcf86cd799439012',
+        designationId: '507f1f77bcf86cd799439013'
       };
       
       const mockResult = { employeeProfile: {}, resourceProfile: {} };

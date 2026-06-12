@@ -89,6 +89,14 @@ const timesheetSchema = new mongoose.Schema(
       },
       requestedAt: { type: Date, default: null },
     },
+    reminderCount: {
+      type: Number,
+      default: 0,
+    },
+    lastReminderSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

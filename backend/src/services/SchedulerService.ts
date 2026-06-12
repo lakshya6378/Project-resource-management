@@ -8,7 +8,7 @@ import {
 } from '../repositories';
 import { getLastCompletedWeekStart } from '../utils/dateHelpers';
 import emailService from './EmailService';
-import { MILESTONE_STATUS, PROJECT_STATUS } from '../config/constants';
+import { MILESTONE_STATUS, PROJECT_STATUS, HEALTH_STATUS } from '../config/constants';
 
 class SchedulerService {
   cronJob: any;
@@ -39,7 +39,7 @@ class SchedulerService {
       });
 
       setTimeout(() => this.runAllJobs(), 5000);
-      
+
     } catch (err) {
       console.error('❌ Failed to start SchedulerService:', err.message);
     }
@@ -96,35 +96,68 @@ class SchedulerService {
 
   async _processMissedTimesheets() {
     console.log('  -> Running Missed Timesheet Job...');
-    let missedCount = 0;
+    let processCount = 0;
     try {
       const lastWeekStart = getLastCompletedWeekStart();
-      const employees = await userRepository.findAll({ isActive: true });
 
+      // Step 1: Find completely missing timesheets and insert them as MISSED
+      const employees = await userRepository.findAll({ isActive: true });
       for (const employee of employees) {
         if ((employee.roleId as any)?.name !== 'EMPLOYEE') continue;
         const empId = employee._id;
         const exists = await timesheetRepository.exists(empId, lastWeekStart);
-
         if (!exists) {
           await timesheetRepository.insertMissed(empId, lastWeekStart);
-          missedCount++;
-          
-          const activeAllocations = await allocationRepository.findActiveByEmployeeOnDate(empId, new Date());
-          const managersNotified = new Set();
-          for (const alloc of activeAllocations) {
-            const project = await projectRepository.findById((alloc as any).projectId._id || (alloc as any).projectId);
-            if (project && project.managerId) {
-              const managerId = (project.managerId as any)._id?.toString() || project.managerId.toString();
-              if (!managersNotified.has(managerId)) {
-                managersNotified.add(managerId);
-                emailService.sendMissedTimesheetAlertEmail(project.managerId, employee, lastWeekStart).catch(console.error);
-              }
-            }
-          }
         }
       }
-      console.log(`     Processed ${missedCount} missed timesheets for week starting ${lastWeekStart.toLocaleDateString()}.`);
+
+      // Step 2: Process all MISSED timesheets for last week
+      const missedTimesheets = await timesheetRepository.findMissed(lastWeekStart);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, etc.
+
+      for (const ts of missedTimesheets) {
+        if (ts.lastReminderSentAt) {
+          const lastSent = new Date(ts.lastReminderSentAt);
+          lastSent.setHours(0, 0, 0, 0);
+          if (lastSent.getTime() === today.getTime()) continue; // Only process once per day
+        }
+
+        const employee = ts.resourceId;
+        const activeAllocations = await allocationRepository.findActiveByEmployeeOnDate(employee._id, today);
+        let reportingManager = null;
+        for (const alloc of activeAllocations) {
+          const project = await projectRepository.findById((alloc as any).projectId._id || (alloc as any).projectId);
+          if (project && project.managerId) {
+            reportingManager = project.managerId;
+            break;
+          }
+        }
+
+        if (dayOfWeek === 1 && (ts.reminderCount as number) < 1 && ts.status === 'MISSED') {
+          // Monday: Reminder 1
+          await emailService.sendTimesheetReminderEmail(employee, 1).catch(console.error);
+          await timesheetRepository.update(ts._id, { reminderCount: 1, lastReminderSentAt: new Date() });
+          processCount++;
+        }
+        else if (dayOfWeek === 2 && (ts.reminderCount as number) < 2 && ts.status === 'MISSED') {
+          // Tuesday: Reminder 2
+          await emailService.sendTimesheetReminderEmail(employee, 2).catch(console.error);
+          await timesheetRepository.update(ts._id, { reminderCount: 2, lastReminderSentAt: new Date() });
+          processCount++;
+        }
+        else if (dayOfWeek >= 3 && ts.status === 'MISSED') {
+          // Wednesday onwards: Freeze
+          await timesheetRepository.update(ts._id, { status: 'FROZEN', lastReminderSentAt: new Date() });
+          if (reportingManager) {
+            await emailService.sendTimesheetFreezeEmail(reportingManager, employee).catch(console.error);
+          }
+          processCount++;
+        }
+      }
+
+      console.log(`     Processed ${processCount} timesheet reminder/freeze actions.`);
     } catch (err) {
       console.error('     Error in Missed Timesheet Job:', err);
     }
@@ -137,21 +170,50 @@ class SchedulerService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const activeProjects = await projectRepository.findActiveProjects();
-      
+      const aiService = require('./AiService').default;
+      const projectService = require('./ProjectService').default;
+
       for (const project of activeProjects) {
+        let isProjectAtRisk = false;
+
         for (const milestone of (project as any).milestones) {
-          if ((milestone.status === MILESTONE_STATUS.NOT_STARTED || milestone.status === MILESTONE_STATUS.IN_PROGRESS) && 
-              new Date(milestone.dueDate) < today) {
+          if ((milestone.status === MILESTONE_STATUS.NOT_STARTED || milestone.status === MILESTONE_STATUS.IN_PROGRESS) &&
+            new Date(milestone.dueDate) < today) {
             await projectRepository.updateMilestoneStatus(project._id, milestone._id, MILESTONE_STATUS.AT_RISK);
-            riskCount++;
-            
-            if ((project as any).managerId) {
-              emailService.sendAtRiskMilestoneEmail((project as any).managerId, project, milestone).catch(console.error);
+            isProjectAtRisk = true;
+          }
+        }
+
+        // Also check overall health flags (e.g. low hours logged)
+        const { healthStatus } = await projectService._computeProjectHealthAndFlags(project);
+
+        if (isProjectAtRisk || healthStatus === HEALTH_STATUS.AT_RISK) {
+          riskCount++;
+          const manager = (project as any).managerId;
+          console.log(manager);
+          if (manager) {
+            let aiSummary = "No AI summary could be generated.";
+            let suggestedHelp = "No AI suggestions could be generated.";
+
+            try {
+              const managerIdStr = manager._id ? manager._id.toString() : manager.toString();
+              const summaryRes = await aiService.generateRiskSummary(project._id, managerIdStr);
+              if (summaryRes && summaryRes.summary) aiSummary = summaryRes.summary;
+
+              const suggestRes = await aiService.suggestTeam(project._id, managerIdStr, "Need extra capacity to mitigate current project risks");
+              if (suggestRes) {
+                const team = (suggestRes as any).suggestedTeam || [];
+                suggestedHelp = team.map((t: any) => `- **${t.name}**: ${t.reasoning}`).join('\n');
+              }
+            } catch (e) {
+              console.error("AI Generation error during scheduler:", e);
             }
+
+            emailService.sendProjectAtRiskEmail(manager, project, aiSummary, suggestedHelp).catch(console.error);
           }
         }
       }
-      console.log(`     Flagged ${riskCount} milestones as AT_RISK.`);
+      console.log(`     Flagged/Notified ${riskCount} projects as AT_RISK.`);
     } catch (err) {
       console.error('     Error in At-Risk Milestones Job:', err);
     }
@@ -170,7 +232,7 @@ class SchedulerService {
       for (const project of activeProjects) {
         const endDate = new Date((project as any).endDate);
         endDate.setHours(0, 0, 0, 0);
-        
+
         if (endDate.getTime() === targetDate.getTime()) {
           deadlineCount++;
           if ((project as any).managerId) {
@@ -191,7 +253,7 @@ class SchedulerService {
       for (const employee of employees) {
         if ((employee.roleId as any)?.name !== 'EMPLOYEE') continue;
         if ((employee as any)._id && (employee as any)._id.email) {
-          emailService.sendTimesheetReminderEmail((employee as any)._id).catch(console.error);
+          emailService.sendTimesheetReminderEmail((employee as any), 0).catch(console.error);
           sentCount++;
         }
       }

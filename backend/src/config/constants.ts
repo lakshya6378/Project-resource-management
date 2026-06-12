@@ -37,6 +37,7 @@ const HEALTH_STATUS = Object.freeze({
 const TIMESHEET_STATUS = Object.freeze({
   SUBMITTED: 'SUBMITTED',
   MISSED: 'MISSED',
+  FROZEN: 'FROZEN',
 });
 
 // ─── Milestone Status ───────────────────────────────────────

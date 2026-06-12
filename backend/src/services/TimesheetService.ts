@@ -39,13 +39,25 @@ class TimesheetService {
       throw new AppError('Cannot submit timesheets for future weeks', 400);
     }
 
-    // Check for duplicate or missed timesheet
+    // Check if employee has any frozen timesheets without approved access
+    const { Timesheet } = require('../models');
+    const hasFrozen = await Timesheet.exists({
+      resourceId: employeeId,
+      status: 'FROZEN',
+      'accessRequest.status': { $ne: 'APPROVED' }
+    });
+    if (hasFrozen) {
+      throw new AppError('Your timesheet access is frozen. Please contact your manager to restore access.', 403);
+    }
+
+    // Check for duplicate or missed/frozen timesheet
     const existing = await timesheetRepository.findByEmployeeAndWeek(
       employeeId, normalizedWeekStart
     );
     if (existing) {
-      if ((existing as any).status === 'MISSED' && (existing as any).accessRequest?.status === 'APPROVED') {
-        // Allow updating the missed timesheet
+      const status = (existing as any).status;
+      if ((status === 'MISSED' || status === 'FROZEN') && (existing as any).accessRequest?.status === 'APPROVED') {
+        // Allow updating the missed or frozen timesheet
       } else {
         throw new AppError('Timesheet already submitted for this week', 409);
       }
@@ -189,7 +201,7 @@ class TimesheetService {
     const normalizedWeekStart = normalizeToMonday(new Date(weekStart));
     const timesheet = await timesheetRepository.findByEmployeeAndWeek(employeeId, normalizedWeekStart);
     if (!timesheet) throw new AppError('No missed timesheet found for this week', 404);
-    if ((timesheet as any).status !== 'MISSED') throw new AppError('Timesheet is not missed', 400);
+    if ((timesheet as any).status !== 'MISSED' && (timesheet as any).status !== 'FROZEN') throw new AppError('Timesheet is not missed or frozen', 400);
     if ((timesheet as any).accessRequest?.status === 'PENDING') throw new AppError('Access request already pending', 400);
 
     (timesheet as any).accessRequest = {
@@ -205,7 +217,7 @@ class TimesheetService {
   async reviewTimesheetAccessRequest(managerId, timesheetId, approved) {
     const timesheet = await timesheetRepository.findById(timesheetId);
     if (!timesheet) throw new AppError('Timesheet not found', 404);
-    if ((timesheet as any).status !== 'MISSED') throw new AppError('Timesheet is not missed', 400);
+    if ((timesheet as any).status !== 'MISSED' && (timesheet as any).status !== 'FROZEN') throw new AppError('Timesheet is not missed or frozen', 400);
     if ((timesheet as any).accessRequest?.status !== 'PENDING') throw new AppError('No pending access request', 400);
 
     // Note: We might want to verify if the manager actually manages this employee.

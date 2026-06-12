@@ -22,6 +22,12 @@ jest.mock('../../../src/repositories', () => ({
   },
 }));
 
+jest.mock('../../../src/models', () => ({
+  Timesheet: {
+    exists: jest.fn().mockResolvedValue(false),
+  }
+}));
+
 describe('TimesheetService', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -25,6 +25,7 @@ jest.mock('../../../src/services/EmailService', () => ({
   __esModule: true,
   default: {
     sendAccountCredentialsEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
   },
 }));
 
@@ -96,7 +97,7 @@ describe('UserService', () => {
 
       await expect(userService.createUser(mockDto, adminId))
         .rejects
-        .toThrow('Invalid Role ID provided');
+        .toThrow('Invalid role ID');
     });
   });
 

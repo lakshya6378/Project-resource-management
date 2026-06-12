@@ -55,6 +55,20 @@ class EmailService {
     });
   }
 
+  async sendPasswordResetEmail(user: any, tempPassword: string) {
+    await this.sendMail({
+      to: user.email,
+      subject: 'PRM Tool - Password Reset',
+      html: `
+        <h2>Hello ${user.fullName},</h2>
+        <p>Your password has been reset by an administrator.</p>
+        <p><strong>Username:</strong> ${user.username}</p>
+        <p><strong>New Temporary Password:</strong> ${tempPassword}</p>
+        <p>Please log in and change your password immediately.</p>
+      `,
+    });
+  }
+
   async sendAtRiskMilestoneEmail(manager: any, project: any, milestone: any) {
     await this.sendMail({
       to: manager.email,
@@ -64,6 +78,39 @@ class EmailService {
         <p>Hello ${manager.fullName},</p>
         <p>The milestone <strong>${milestone.title}</strong> for project <strong>${project.name}</strong> has passed its due date (${new Date(milestone.dueDate).toLocaleDateString()}) and is not yet completed.</p>
         <p>It has been marked as <strong>AT_RISK</strong>. Please review and take necessary actions.</p>
+      `,
+    });
+  }
+
+  async sendProjectAtRiskEmail(manager: any, project: any, aiSummary: string, suggestedHelp: string) {
+    await this.sendMail({
+      to: manager.email,
+      subject: `Notification: Project ${project.name} is AT RISK`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #d9534f; border-bottom: 2px solid #d9534f; padding-bottom: 10px;">Project At-Risk: ${project.name}</h2>
+          
+          <div style="background-color: #fff; padding: 15px; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #555;">Project Details</h3>
+            <p><strong>Name:</strong> ${project.name}</p>
+            <p><strong>Manager:</strong> ${manager.fullName}</p>
+            <p><strong>Health Status:</strong> <span style="color: #d9534f; font-weight: bold;">🔴 RED (AT RISK)</span></p>
+          </div>
+          
+          <div style="background-color: #fff; padding: 15px; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #555;">🧠 AI Risk Summary</h3>
+            <p style="white-space: pre-wrap;">${aiSummary}</p>
+          </div>
+          
+          <div style="background-color: #fff; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #555;">💡 Suggested Help</h3>
+            <p style="white-space: pre-wrap;">${suggestedHelp}</p>
+          </div>
+          
+          <p style="font-size: 12px; color: #888; text-align: center; margin-top: 20px;">
+            Managers can act quickly without constantly monitoring dashboards.
+          </p>
+        </div>
       `,
     });
   }
@@ -81,14 +128,16 @@ class EmailService {
     });
   }
 
-  async sendTimesheetReminderEmail(employee: any) {
+  async sendTimesheetReminderEmail(employee: any, reminderLevel: number) {
+    const isWarning = reminderLevel === 2;
     await this.sendMail({
       to: employee.email,
-      subject: 'Reminder: Submit Your Weekly Timesheet',
+      subject: isWarning ? 'URGENT: Final Reminder to Submit Your Weekly Timesheet' : 'Reminder: Submit Your Weekly Timesheet',
       html: `
-        <h2>Timesheet Reminder</h2>
+        <h2>${isWarning ? 'Final Timesheet Reminder' : 'Timesheet Reminder'}</h2>
         <p>Hello ${employee.fullName},</p>
-        <p>This is a friendly reminder to submit your timesheet for this week before the deadline.</p>
+        <p>This is a ${isWarning ? '<strong>final warning</strong>' : 'friendly reminder'} to submit your timesheet for last week.</p>
+        ${isWarning ? '<p style="color: red;">If you do not submit it today, your timesheet access will be frozen.</p>' : ''}
       `,
     });
   }
@@ -102,6 +151,22 @@ class EmailService {
         <p>Hello ${manager.fullName},</p>
         <p><strong>${employee.fullName}</strong> failed to submit their timesheet for the week starting ${new Date(weekStart).toLocaleDateString()}.</p>
         <p>The system has automatically generated a MISSED entry.</p>
+      `,
+    });
+  }
+
+  async sendTimesheetFreezeEmail(manager: any, employee: any) {
+    await this.sendMail({
+      to: [manager.email, employee.email].join(','),
+      subject: `Action Required: Timesheet Access Frozen - ${employee.fullName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2 style="color: #d9534f;">Timesheet Access Restricted</h2>
+          <p>Hello,</p>
+          <p>This is a notification that <strong>${employee.fullName}</strong> has failed to submit their timesheet after multiple reminders.</p>
+          <p>As a result, their timesheet submission access is now <strong>FROZEN</strong>. They can still log in and view, but cannot create, update, or submit entries.</p>
+          <p><strong>To Restore Access:</strong> The reporting manager can review the issue and restore access through the system by approving a Timesheet Access Request.</p>
+        </div>
       `,
     });
   }

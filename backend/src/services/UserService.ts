@@ -128,6 +128,10 @@ class UserService {
     user.forcePasswordChange = true;
     await user.save();
 
+    // Send password reset email
+    const emailService = require('./EmailService').default;
+    await emailService.sendPasswordResetEmail(user, tempPassword);
+
     return { message: 'Password reset successfully. User must change password on next login.' };
   }
 }

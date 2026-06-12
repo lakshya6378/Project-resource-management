@@ -96,6 +96,7 @@ class ProjectService {
     const activeAllocations = await Allocation.find({ projectId: project._id, isActive: true }).populate('resourceId', 'fullName');
     
     for (const alloc of activeAllocations) {
+      if (!alloc.resourceId) continue;
       const expectedHoursPerWeek = ((alloc.utilisation || 0) / 100) * env.MAX_WEEKLY_HOURS;
       if (expectedHoursPerWeek > 0) {
         const recentTimesheets = await Timesheet.find({
