@@ -1,0 +1,31 @@
+{
+  "name": "project-resource-management-tool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fix-exports.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:console": "cd console && npm start",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:console\"",
+    "install:all": "npm install && cd backend && npm install && cd ../console && npm install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lakshya6378/Project-resource-management.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lakshya6378/Project-resource-management/issues"
+  },
+  "homepage": "https://github.com/lakshya6378/Project-resource-management#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

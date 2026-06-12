@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRM Tool — Technical Architecture Document</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: rgba(99,113,148,0.25);
+    --border2: rgba(99,113,148,0.45);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --teal: #2dd4bf;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --green: #4ade80;
+    --purple: #c084fc;
+    --pink: #f472b6;
+    --blue: #60a5fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  /* ===== HEADER ===== */
+  .hero {
+    background: linear-gradient(135deg, #0f1117 0%, #1a1f35 40%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 60px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(99,102,241,0.15);
+    border: 1px solid rgba(99,102,241,0.35);
+    color: var(--accent2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    color: var(--text2);
+    font-size: 15px;
+    max-width: 640px;
+  }
+  .tech-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .badge-react   { background: rgba(97,218,251,0.12); color: #61dafb; border: 1px solid rgba(97,218,251,0.25); }
+  .badge-node    { background: rgba(77,176,75,0.12);  color: #6cbb5a; border: 1px solid rgba(77,176,75,0.25); }
+  .badge-mongo   { background: rgba(78,162,80,0.12);  color: #4ea650; border: 1px solid rgba(78,162,80,0.25); }
+  .badge-express { background: rgba(200,200,200,0.08); color: #aaa;   border: 1px solid rgba(200,200,200,0.18); }
+  .badge-jwt     { background: rgba(251,176,52,0.12); color: #fbb034; border: 1px solid rgba(251,176,52,0.25); }
+  .badge-tw      { background: rgba(56,189,248,0.12); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
+  .badge-ai      { background: rgba(192,132,252,0.12); color: #c084fc; border: 1px solid rgba(192,132,252,0.25); }
+  .badge-boot    { background: rgba(121,82,179,0.12); color: #9556c9; border: 1px solid rgba(121,82,179,0.25); }
+
+  /* ===== NAV ===== */
+  .sidenav {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .sidenav .brand {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .sidenav a {
+    display: block;
+    padding: 7px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .sidenav a:hover { color: var(--text); background: rgba(99,102,241,0.08); border-left-color: var(--accent); }
+  .sidenav .section-label {
+    padding: 12px 20px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  /* ===== LAYOUT ===== */
+  .main-content {
+    margin-left: 220px;
+    padding: 0;
+  }
+  .section {
+    padding: 48px 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .section-num {
+    width: 32px; height: 32px;
+    background: rgba(99,102,241,0.15);
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .card-title.blue   { color: var(--blue); }
+  .card-title.teal   { color: var(--teal); }
+  .card-title.purple { color: var(--purple); }
+  .card-title.amber  { color: var(--amber); }
+  .card-title.green  { color: var(--green); }
+  .card-title.pink   { color: var(--pink); }
+  .card-title.red    { color: var(--red); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* ===== MERMAID ===== */
+  .diagram-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .diagram-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  th {
+    padding: 10px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-weight: 600;
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(99,102,241,0.04); }
+
+  /* ===== CODE ===== */
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.2);
+    color: var(--accent2);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  pre {
+    background: #0a0d14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .kw  { color: #c084fc; }
+  .str { color: #4ade80; }
+  .num { color: #fbbf24; }
+  .cm  { color: #475569; }
+  .fn  { color: #60a5fa; }
+  .ty  { color: #2dd4bf; }
+
+  /* ===== ENDPOINT PILLS ===== */
+  .ep { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg3); }
+  .method { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; min-width: 50px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+  .GET    { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+  .POST   { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+  .PUT    { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+  .PATCH  { background: rgba(251,146,60,0.15); color: #fb923c; border: 1px solid rgba(251,146,60,0.3); }
+  .DELETE { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+  .ep-path { font-family: 'Cascadia Code', monospace; font-size: 12.5px; color: var(--text); flex: 1; }
+  .ep-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .ep-role { font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 8px; font-weight: 600; flex-shrink: 0; }
+  .role-admin { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+  .role-mgr   { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+  .role-emp   { background: rgba(74,222,128,0.15);  color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+  .role-all   { background: rgba(99,102,241,0.15);  color: #818cf8; border: 1px solid rgba(99,102,241,0.25); }
+
+  /* ===== TIMELINE ===== */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 1px; background: var(--border2); }
+  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item::before { content: ''; position: absolute; left: -24px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); box-shadow: 0 0 0 2px var(--accent); }
+  .tl-week { font-size: 11px; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .tl-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .tl-items { list-style: none; }
+  .tl-items li { font-size: 13px; color: var(--text2); padding: 2px 0; }
+  .tl-items li::before { content: '→ '; color: var(--accent2); }
+
+  /* ===== ROLE SECTIONS ===== */
+  .role-card {
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid;
+  }
+  .role-admin-card { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.2); }
+  .role-mgr-card   { background: rgba(251,191,36,0.06);  border-color: rgba(251,191,36,0.2); }
+  .role-emp-card   { background: rgba(74,222,128,0.06);  border-color: rgba(74,222,128,0.2); }
+
+  .role-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .role-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .ri-admin { background: rgba(248,113,113,0.15); }
+  .ri-mgr   { background: rgba(251,191,36,0.15); }
+  .ri-emp   { background: rgba(74,222,128,0.15); }
+
+  .role-name { font-size: 16px; font-weight: 700; }
+  .rn-admin { color: #f87171; }
+  .rn-mgr   { color: #fbbf24; }
+  .rn-emp   { color: #4ade80; }
+
+  ul.feature-list { list-style: none; }
+  ul.feature-list li { padding: 5px 0; font-size: 13px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  ul.feature-list li:last-child { border-bottom: none; }
+  ul.feature-list li::before { content: '✦ '; color: var(--accent2); font-size: 9px; }
+
+  /* ===== SCHEMA FIELD ===== */
+  .field { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .field:last-child { border-bottom: none; }
+  .fname { font-family: 'Cascadia Code', monospace; color: var(--teal); min-width: 160px; }
+  .ftype { color: var(--amber); min-width: 100px; font-family: monospace; font-size: 11px; }
+  .fdesc { color: var(--text2); flex: 1; }
+  .fkey  { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+  .pk { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+  .fk { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+  .idx { background: rgba(45,212,191,0.15); color: #2dd4bf; border: 1px solid rgba(45,212,191,0.3); }
+
+  .schema-col {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .schema-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .schema-coll { font-size: 13px; font-weight: 700; color: #fff; font-family: 'Cascadia Code', monospace; }
+  .schema-body { padding: 12px 20px; }
+
+  /* ===== WORKFLOW ===== */
+  .flow-step {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .fs-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(99,102,241,0.2);
+    border: 1px solid rgba(99,102,241,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--accent2);
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .fs-content h4 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .fs-content p  { font-size: 13px; color: var(--text2); }
+
+  /* ===== PRINCIPLE ===== */
+  .principle {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+  }
+  .p-name { font-size: 13px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .p-desc { font-size: 12.5px; color: var(--text2); }
+  .p-loc  { font-size: 11px; color: var(--text3); margin-top: 4px; font-style: italic; }
+
+  /* page breaks for print */
+  @media print { .section { page-break-before: always; } }
+</style>
+</head>
+<body>
+
+<!-- ===== SIDE NAV ===== -->
+<nav class="sidenav">
+  <div class="brand">PRM · Architecture</div>
+  <div class="section-label">Diagrams</div>
+  <a href="#s1">Class Diagrams</a>
+  <a href="#s2">Use Case Diagram</a>
+  <a href="#s3">Sequence Diagrams</a>
+  <div class="section-label">Data & API</div>
+  <a href="#s4">Database Schema</a>
+  <a href="#s5">API Endpoints</a>
+  <div class="section-label">Design</div>
+  <a href="#s6">App Workflow</a>
+  <a href="#s7">Implementation Plan</a>
+  <div class="section-label">Standards</div>
+  <a href="#s8">Tech Stack</a>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<div class="main-content">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">Technical Architecture Document</div>
+    <h1>Project &amp; Resource Management Tool</h1>
+    <p>Senior Architect Review — Full design blueprint covering class diagrams, use cases, sequences, database schema, API contracts, workflow, and implementation plan.</p>
+    <div class="tech-badges">
+      <span class="badge badge-react">React</span>
+      <span class="badge badge-boot">Bootstrap</span>
+      <span class="badge badge-tw">Tailwind CSS</span>
+      <span class="badge badge-node">Node.js</span>
+      <span class="badge badge-express">Express.js</span>
+      <span class="badge badge-jwt">JWT</span>
+      <span class="badge badge-mongo">MongoDB</span>
+      <span class="badge badge-ai">LLM AI (Gemini / Groq)</span>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 1 — CLASS DIAGRAMS ===== -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <div class="section-title">Class Diagrams</div>
+        <div class="section-subtitle">Role-wise separation first, then full application class diagram</div>
+      </div>
+    </div>
+
+    <!-- 1A — Admin Role Classes -->
+    <div class="diagram-label">1A — Admin Role Class Diagram</div>
+    <div class="diagram-wrap">
+      <div id="diag-admin"></div>
+    </div>
+
+    <!-- 1B — Manager Role Classes -->
+    <div class="diagram-label">1B — Manager Role Class Diagram</div>
+    <div class="diagram-wrap">
+      <div id="diag-manager"></div>
+    </div>
+
+    <!-- 1C — Employee Role Classes -->
+    <div class="diagram-label">1C — Employee Role Class Diagram</div>
+    <div class="diagram-wrap">
+      <div id="diag-employee"></div>
+    </div>
+
+    <!-- 1D — Full Application Class Diagram -->
+    <div class="diagram-label">1D — Full Application Class Diagram (All Connections)</div>
+    <div class="diagram-wrap">
+      <div id="diag-full"></div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 2 — USE CASE ===== -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <div class="section-title">Use Case Diagram</div>
+        <div class="section-subtitle">Actor interactions with system features</div>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <!-- Admin -->
+      <div class="role-card role-admin-card">
+        <div class="role-head">
+          <div class="role-icon ri-admin">👤</div>
+          <div>
+            <div class="role-name rn-admin">Admin</div>
+            <div style="font-size:12px;color:var(--text2);">System Operator / HR</div>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li>Create / Deactivate user accounts</li>
+          <li>Add / Update employee profiles</li>
+          <li>Manage employee skills &amp; proficiency</li>
+          <li>Create / Update projects</li>
+          <li>Manage project milestones</li>
+          <li>View company-wide allocation matrix</li>
+          <li>Configure system settings (LLM key, scheduler, max hours)</li>
+          <li>Reset user passwords</li>
+          <li>Reactivate deactivated accounts</li>
+        </ul>
+      </div>
+      <!-- Manager -->
+      <div class="role-card role-mgr-card">
+        <div class="role-head">
+          <div class="role-icon ri-mgr">🗂</div>
+          <div>
+            <div class="role-name rn-mgr">Manager</div>
+            <div style="font-size:12px;color:var(--text2);">Delivery Manager</div>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li>View resource dashboard (bench / allocated)</li>
+          <li>AI-assisted resource search (natural language)</li>
+          <li>Allocate employees to projects</li>
+          <li>End existing allocations</li>
+          <li>Monitor project health &amp; milestones</li>
+          <li>View team timesheets (read-only)</li>
+          <li>AI Skill Matcher suggestions</li>
+          <li>AI Risk Summary for projects</li>
+        </ul>
+      </div>
+      <!-- Employee -->
+      <div class="role-card role-emp-card">
+        <div class="role-head">
+          <div class="role-icon ri-emp">💼</div>
+          <div>
+            <div class="role-name rn-emp">Employee</div>
+            <div style="font-size:12px;color:var(--text2);">Individual Contributor</div>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li>Submit weekly timesheets</li>
+          <li>Log hours per project</li>
+          <li>Tag activity types (skill evidence)</li>
+          <li>View own timesheet history</li>
+          <li>View own allocation history</li>
+          <li>Receive missed timesheet reminders</li>
+          <li>Change password on first login</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- System Use Cases -->
+    <div class="card">
+      <div class="card-title purple">System / Background Use Cases</div>
+      <div class="grid-3">
+        <div class="principle">
+          <div class="p-name">Background Scheduler</div>
+          <div class="p-desc">Runs at configurable intervals. Recomputes employee utilisation %, updates employee status (BENCH / ALLOCATED), flags project health risks, marks timesheets as MISSED for incomplete weeks.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">AI Skill Matcher</div>
+          <div class="p-desc">Receives natural language requirement from Manager. Pre-filters ineligible employees. Sends candidate summary + requirement to LLM. Returns ranked list with reasons.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">AI Risk Summariser</div>
+          <div class="p-desc">Collects milestone dates/status, logged hours, allocation data for a project. Sends structured facts to LLM. Returns plain-English risk paragraph for Manager review.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 3 — SEQUENCE DIAGRAMS ===== -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <div class="section-title">Sequence Diagrams</div>
+        <div class="section-subtitle">Key interaction flows between actors, frontend, backend, database, and AI service</div>
+      </div>
+    </div>
+
+    <div class="diagram-label">3A — Authentication &amp; First-Login Password Change</div>
+    <div class="diagram-wrap"><div id="seq-auth"></div></div>
+
+    <div class="diagram-label">3B — Manager: AI-Assisted Resource Allocation</div>
+    <div class="diagram-wrap"><div id="seq-alloc"></div></div>
+
+    <div class="diagram-label">3C — Employee: Submit Timesheet</div>
+    <div class="diagram-wrap"><div id="seq-timesheet"></div></div>
+
+    <div class="diagram-label">3D — Background Scheduler: Utilisation Compute &amp; Health Flagging</div>
+    <div class="diagram-wrap"><div id="seq-scheduler"></div></div>
+  </section>
+
+  <!-- ===== SECTION 4 — DATABASE SCHEMA ===== -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <div class="section-title">Database Schema (MongoDB)</div>
+        <div class="section-subtitle">7 collections with field types, indexes, and relationships</div>
+      </div>
+    </div>
+
+    <div class="diagram-label">Entity Relationship Overview</div>
+    <div class="diagram-wrap"><div id="diag-erd"></div></div>
+
+    <div class="grid-2">
+
+      <!-- users -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">users</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Auto-generated</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">username</span><span class="ftype">String</span><span class="fdesc">Unique login name</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">email</span><span class="ftype">String</span><span class="fdesc">Unique email address</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">passwordHash</span><span class="ftype">String</span><span class="fdesc">bcrypt hashed password</span></div>
+          <div class="field"><span class="fname">role</span><span class="ftype">Enum</span><span class="fdesc">ADMIN | MANAGER | EMPLOYEE</span></div>
+          <div class="field"><span class="fname">isActive</span><span class="ftype">Boolean</span><span class="fdesc">Account active flag</span></div>
+          <div class="field"><span class="fname">forcePasswordChange</span><span class="ftype">Boolean</span><span class="fdesc">Requires reset on next login</span></div>
+          <div class="field"><span class="fname">createdBy</span><span class="ftype">ObjectId</span><span class="fdesc">Admin who created account</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc">Account creation timestamp</span></div>
+          <div class="field"><span class="fname">updatedAt</span><span class="ftype">Date</span><span class="fdesc">Last update timestamp</span></div>
+        </div>
+      </div>
+
+      <!-- employees -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#60a5fa;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">employees</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Auto-generated</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">userId</span><span class="ftype">ObjectId</span><span class="fdesc">Linked user account</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">fullName</span><span class="ftype">String</span><span class="fdesc">Display name</span></div>
+          <div class="field"><span class="fname">email</span><span class="ftype">String</span><span class="fdesc">Work email (denormalized for perf)</span></div>
+          <div class="field"><span class="fname">department</span><span class="ftype">String</span><span class="fdesc">Backend / Frontend / DevOps / QA</span></div>
+          <div class="field"><span class="fname">designation</span><span class="ftype">String</span><span class="fdesc">Job title</span></div>
+          <div class="field"><span class="fname">status</span><span class="ftype">Enum</span><span class="fdesc">BENCH | ALLOCATED | INACTIVE</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">currentUtilisation</span><span class="ftype">Number</span><span class="fdesc">Computed % (0–100), updated by scheduler</span></div>
+          <div class="field"><span class="fname">skills</span><span class="ftype">Array</span><span class="fdesc">[{name, category, proficiency}] embedded</span></div>
+          <div class="field"><span class="fname">isActive</span><span class="ftype">Boolean</span><span class="fdesc">Soft delete flag</span></div>
+          <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc"></span></div>
+        </div>
+      </div>
+
+      <!-- projects -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#fbbf24;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">projects</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Auto-generated</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">name</span><span class="ftype">String</span><span class="fdesc">Project name (unique within org)</span></div>
+          <div class="field"><span class="fname">description</span><span class="ftype">String</span><span class="fdesc">Brief description</span></div>
+          <div class="field"><span class="fname">managerId</span><span class="ftype">ObjectId</span><span class="fdesc">Assigned delivery manager</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">startDate</span><span class="ftype">Date</span><span class="fdesc">Project start</span></div>
+          <div class="field"><span class="fname">endDate</span><span class="ftype">Date</span><span class="fdesc">Project end / deadline</span></div>
+          <div class="field"><span class="fname">status</span><span class="ftype">Enum</span><span class="fdesc">PLANNED | ACTIVE | ON_HOLD | COMPLETED</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">healthStatus</span><span class="ftype">Enum</span><span class="fdesc">ON_TRACK | ATTENTION | AT_RISK — set by scheduler</span></div>
+          <div class="field"><span class="fname">milestones</span><span class="ftype">Array</span><span class="fdesc">[{title, dueDate, status}] embedded sub-docs</span></div>
+          <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc"></span></div>
+        </div>
+      </div>
+
+      <!-- allocations -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">allocations</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Auto-generated</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">employeeId</span><span class="ftype">ObjectId</span><span class="fdesc">Employee being allocated</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">projectId</span><span class="ftype">ObjectId</span><span class="fdesc">Target project</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">managerId</span><span class="ftype">ObjectId</span><span class="fdesc">Manager who made allocation</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">utilisation</span><span class="ftype">Number</span><span class="fdesc">Allocation percentage (1–100)</span></div>
+          <div class="field"><span class="fname">fromDate</span><span class="ftype">Date</span><span class="fdesc">Allocation start date</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">toDate</span><span class="ftype">Date</span><span class="fdesc">Allocation end date (nullable = open-ended)</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">isActive</span><span class="ftype">Boolean</span><span class="fdesc">False when manually ended</span></div>
+          <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc"></span></div>
+        </div>
+      </div>
+
+      <!-- timesheets -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#c084fc;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">timesheets</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Auto-generated</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">employeeId</span><span class="ftype">ObjectId</span><span class="fdesc">Submitting employee</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">weekStart</span><span class="ftype">Date</span><span class="fdesc">Always Monday (normalised)</span><span class="fkey idx">IDX</span></div>
+          <div class="field"><span class="fname">status</span><span class="ftype">Enum</span><span class="fdesc">SUBMITTED | MISSED</span></div>
+          <div class="field"><span class="fname">totalHours</span><span class="ftype">Number</span><span class="fdesc">Computed sum across all entries</span></div>
+          <div class="field"><span class="fname">entries</span><span class="ftype">Array</span><span class="fdesc">[{projectId, hours, activityTags[]}] embedded</span></div>
+          <div class="field"><span class="fname">submittedAt</span><span class="ftype">Date</span><span class="fdesc">Submission timestamp</span></div>
+        </div>
+      </div>
+
+      <!-- system_config -->
+      <div class="schema-col">
+        <div class="schema-head">
+          <span style="width:10px;height:10px;border-radius:50%;background:#2dd4bf;display:inline-block;flex-shrink:0;"></span>
+          <span class="schema-coll">system_config</span>
+        </div>
+        <div class="schema-body">
+          <div class="field"><span class="fname">_id</span><span class="ftype">ObjectId</span><span class="fdesc">Single document (singleton)</span><span class="fkey pk">PK</span></div>
+          <div class="field"><span class="fname">llmProvider</span><span class="ftype">Enum</span><span class="fdesc">GEMINI | GROQ</span></div>
+          <div class="field"><span class="fname">llmApiKey</span><span class="ftype">String</span><span class="fdesc">Encrypted at rest</span></div>
+          <div class="field"><span class="fname">schedulerIntervalHours</span><span class="ftype">Number</span><span class="fdesc">Default: 4</span></div>
+          <div class="field"><span class="fname">maxWeeklyHours</span><span class="ftype">Number</span><span class="fdesc">Default: 40</span></div>
+          <div class="field"><span class="fname">updatedBy</span><span class="ftype">ObjectId</span><span class="fdesc">Admin who last updated</span><span class="fkey fk">FK</span></div>
+          <div class="field"><span class="fname">updatedAt</span><span class="ftype">Date</span><span class="fdesc"></span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Compound Indexes -->
+    <div class="card">
+      <div class="card-title teal">Compound Indexes (Performance Critical)</div>
+      <table>
+        <tr><th>Collection</th><th>Index Fields</th><th>Purpose</th></tr>
+        <tr><td><code>allocations</code></td><td><code>{ employeeId, fromDate, toDate, isActive }</code></td><td>Overlap check for over-allocation validation</td></tr>
+        <tr><td><code>allocations</code></td><td><code>{ projectId, isActive }</code></td><td>Manager view of project team</td></tr>
+        <tr><td><code>timesheets</code></td><td><code>{ employeeId, weekStart }</code> unique</td><td>Prevent duplicate weekly submissions</td></tr>
+        <tr><td><code>employees</code></td><td><code>{ status, department }</code></td><td>Resource Dashboard filter queries</td></tr>
+        <tr><td><code>projects</code></td><td><code>{ managerId, status }</code></td><td>Manager's project list</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 5 — ENDPOINTS ===== -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div>
+        <div class="section-title">API Endpoints</div>
+        <div class="section-subtitle">RESTful Express.js routes — all protected by JWT middleware except /auth</div>
+      </div>
+    </div>
+
+    <!-- Auth -->
+    <div class="card">
+      <div class="card-title blue">Authentication</div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/auth/login</div><div class="ep-desc">Validate credentials, return JWT + role. Returns <code>forcePasswordChange</code> flag.</div></div><span class="ep-role role-all">ALL</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/auth/change-password</div><div class="ep-desc">Change password (required on first login). Clears <code>forcePasswordChange</code> flag.</div></div><span class="ep-role role-all">ALL</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/auth/logout</div><div class="ep-desc">Invalidate token (add to blacklist / clear refresh token).</div></div><span class="ep-role role-all">ALL</span></div>
+    </div>
+
+    <!-- Admin — Users -->
+    <div class="card">
+      <div class="card-title red">Admin — User Management</div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/users</div><div class="ep-desc">List all user accounts with role and status.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/users</div><div class="ep-desc">Create new user account. Sets <code>forcePasswordChange=true</code>.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PATCH">PATCH</span><div><div class="ep-path">/api/admin/users/:id/deactivate</div><div class="ep-desc">Deactivate user account. Blocks login.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PATCH">PATCH</span><div><div class="ep-path">/api/admin/users/:id/reactivate</div><div class="ep-desc">Reactivate account. Does NOT restore allocations.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/users/:id/reset-password</div><div class="ep-desc">Set temp password and set <code>forcePasswordChange=true</code>.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+    </div>
+
+    <!-- Admin — Employees -->
+    <div class="card">
+      <div class="card-title red">Admin — Employee Management</div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/employees</div><div class="ep-desc">List all employees. Supports <code>?status=&amp;department=</code> filters.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/employees</div><div class="ep-desc">Create employee profile linked to existing userId. Validates userId not already linked.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PUT">PUT</span><div><div class="ep-path">/api/admin/employees/:id</div><div class="ep-desc">Update employee profile (name, dept, designation).</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PATCH">PATCH</span><div><div class="ep-path">/api/admin/employees/:id/deactivate</div><div class="ep-desc">Deactivate employee: ends all active allocations, blocks linked user account.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/employees/:id/skills</div><div class="ep-desc">Get employee skills list.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/employees/:id/skills</div><div class="ep-desc">Add skill with category and proficiency level.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PUT">PUT</span><div><div class="ep-path">/api/admin/employees/:id/skills/:skillId</div><div class="ep-desc">Update skill proficiency level.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method DELETE">DELETE</span><div><div class="ep-path">/api/admin/employees/:id/skills/:skillId</div><div class="ep-desc">Remove skill from employee.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/allocations</div><div class="ep-desc">Company-wide allocation matrix. Supports <code>?employeeId=&amp;projectId=</code> filter.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+    </div>
+
+    <!-- Admin — Projects -->
+    <div class="card">
+      <div class="card-title red">Admin — Project Management</div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/projects</div><div class="ep-desc">List all projects.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/projects</div><div class="ep-desc">Create project. Assigns manager by ID.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PUT">PUT</span><div><div class="ep-path">/api/admin/projects/:id</div><div class="ep-desc">Update project name, dates, status, manager.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/projects/:id/milestones</div><div class="ep-desc">List milestones for a project.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/admin/projects/:id/milestones</div><div class="ep-desc">Add milestone (title, dueDate).</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PUT">PUT</span><div><div class="ep-path">/api/admin/projects/:id/milestones/:milestoneId</div><div class="ep-desc">Update milestone status (DONE, IN_PROGRESS, NOT_STARTED).</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/admin/config</div><div class="ep-desc">Get system configuration.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+      <div class="ep"><span class="method PUT">PUT</span><div><div class="ep-path">/api/admin/config</div><div class="ep-desc">Update LLM provider/key, scheduler interval, max weekly hours.</div></div><span class="ep-role role-admin">ADMIN</span></div>
+    </div>
+
+    <!-- Manager -->
+    <div class="card">
+      <div class="card-title amber">Manager</div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/resources/dashboard</div><div class="ep-desc">Resource dashboard: bench employees, allocated employees with utilisation %.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/resources/:id</div><div class="ep-desc">Employee drill-down: profile, skills, allocations, recent activity tags.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/manager/ai/skill-match</div><div class="ep-desc">Body: <code>{projectId, requirement}</code>. Pre-filters then calls LLM. Returns ranked candidates.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/manager/allocations</div><div class="ep-desc">Create allocation. Server validates no over-allocation (&gt;100%) for overlapping date range.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method PATCH">PATCH</span><div><div class="ep-path">/api/manager/allocations/:id/end</div><div class="ep-desc">End allocation today. Only manager who owns the project can call this.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/projects</div><div class="ep-desc">Manager's own projects with health status.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/projects/:id</div><div class="ep-desc">Project detail: milestones, allocations, risk flags.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/manager/ai/risk-summary/:projectId</div><div class="ep-desc">Collects project data, calls LLM, returns plain-English risk paragraph.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/timesheets</div><div class="ep-desc">Team timesheets. Query: <code>?weekStart=DD-MM-YYYY</code>. Filters by manager's project employees.</div></div><span class="ep-role role-mgr">MGR</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/manager/timesheets/:employeeId</div><div class="ep-desc">Individual employee timesheet detail for a given week.</div></div><span class="ep-role role-mgr">MGR</span></div>
+    </div>
+
+    <!-- Employee -->
+    <div class="card">
+      <div class="card-title green">Employee</div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/employee/allocations</div><div class="ep-desc">Own active and historical allocations with project name and dates.</div></div><span class="ep-role role-emp">EMP</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/employee/timesheets</div><div class="ep-desc">Own timesheet history (all weeks, SUBMITTED + MISSED).</div></div><span class="ep-role role-emp">EMP</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/employee/timesheets/week-check</div><div class="ep-desc">Check if current week's timesheet was submitted. Used for reminder banner.</div></div><span class="ep-role role-emp">EMP</span></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">/api/employee/timesheets</div><div class="ep-desc">Submit timesheet. Server validates hours/project limits, duplicate check, future week block.</div></div><span class="ep-role role-emp">EMP</span></div>
+      <div class="ep"><span class="method GET">GET</span><div><div class="ep-path">/api/employee/timesheets/:weekStart</div><div class="ep-desc">Get specific week's timesheet detail (project entries, activity tags).</div></div><span class="ep-role role-emp">EMP</span></div>
+    </div>
+
+    <!-- Internal -->
+    <div class="card">
+      <div class="card-title teal">Internal / Scheduler (No HTTP, cron-triggered)</div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">scheduler/computeUtilisation</div><div class="ep-desc">Recalculates all employee utilisation %, updates <code>employees.currentUtilisation</code>, sets BENCH/ALLOCATED status.</div></div></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">scheduler/flagProjectHealth</div><div class="ep-desc">Evaluates overdue milestones + low hours logged → sets AT_RISK | ATTENTION | ON_TRACK on projects.</div></div></div>
+      <div class="ep"><span class="method POST">POST</span><div><div class="ep-path">scheduler/markMissedTimesheets</div><div class="ep-desc">For each employee with active allocations, if no timesheet for last completed week → inserts MISSED record.</div></div></div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 6 — WORKFLOW ===== -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div>
+        <div class="section-title">Application Workflow</div>
+        <div class="section-subtitle">End-to-end user journeys and system processes</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+
+      <div class="card">
+        <div class="card-title red">Admin Workflow</div>
+        <div class="flow-step"><div class="fs-num">1</div><div class="fs-content"><h4>Initial Bootstrap</h4><p>Seed script inserts first admin account with default credentials (<code>admin / Admin@1234</code>). On first login, admin is forced to change password before accessing any screen.</p></div></div>
+        <div class="flow-step"><div class="fs-num">2</div><div class="fs-content"><h4>Create User Account</h4><p>Admin goes to Manage Users → Create User Account. Sets role, temp password. New user gets <code>forcePasswordChange=true</code>.</p></div></div>
+        <div class="flow-step"><div class="fs-num">3</div><div class="fs-content"><h4>Create Employee Profile</h4><p>Admin goes to Manage Employees → Add Employee. Links the user account by userId. Employee starts with status BENCH.</p></div></div>
+        <div class="flow-step"><div class="fs-num">4</div><div class="fs-content"><h4>Configure Skills</h4><p>Admin adds skills to employee with category (Backend/Frontend/DevOps/QA) and proficiency (Beginner/Intermediate/Advanced).</p></div></div>
+        <div class="flow-step"><div class="fs-num">5</div><div class="fs-content"><h4>Create Projects</h4><p>Admin creates project with name, dates, status, and assigns a Manager. Adds milestones with due dates.</p></div></div>
+        <div class="flow-step"><div class="fs-num">6</div><div class="fs-content"><h4>Configure System</h4><p>Admin sets LLM provider (Gemini/Groq), API key, scheduler interval, and max weekly hours.</p></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title amber">Manager Workflow</div>
+        <div class="flow-step"><div class="fs-num">1</div><div class="fs-content"><h4>View Resource Dashboard</h4><p>Manager sees bench employees with skills and partially-allocated employees with free capacity. Can drill into any employee for full profile.</p></div></div>
+        <div class="flow-step"><div class="fs-num">2</div><div class="fs-content"><h4>AI Resource Search</h4><p>Manager types natural language requirement. Backend pre-filters fully-booked employees. Sends eligible candidates + requirement to LLM. Receives ranked results with reasons.</p></div></div>
+        <div class="flow-step"><div class="fs-num">3</div><div class="fs-content"><h4>Confirm Allocation</h4><p>Manager picks candidate from AI results (or enters employee ID directly). Sets utilisation %, from/to dates. Server validates total doesn't exceed 100%.</p></div></div>
+        <div class="flow-step"><div class="fs-num">4</div><div class="fs-content"><h4>Monitor Projects</h4><p>Manager views My Projects — health traffic-light status per project. Drills in to see milestone progress, allocated team, risk flags computed by scheduler.</p></div></div>
+        <div class="flow-step"><div class="fs-num">5</div><div class="fs-content"><h4>AI Risk Summary</h4><p>Manager requests AI narrative for a project. Backend collects milestone + timesheet data, sends to LLM, displays plain-English paragraph with risk assessment.</p></div></div>
+        <div class="flow-step"><div class="fs-num">6</div><div class="fs-content"><h4>Timesheet Oversight</h4><p>Manager filters team timesheets by week. Views SUBMITTED vs MISSED status per employee per project. Read-only — no approve/reject action.</p></div></div>
+      </div>
+
+    </div>
+
+    <div class="grid-2">
+
+      <div class="card">
+        <div class="card-title green">Employee Workflow</div>
+        <div class="flow-step"><div class="fs-num">1</div><div class="fs-content"><h4>Login &amp; Reminder Check</h4><p>After login, system checks if the most recent completed week's timesheet is missing. If so, warning banner is shown on the employee menu.</p></div></div>
+        <div class="flow-step"><div class="fs-num">2</div><div class="fs-content"><h4>Submit Weekly Timesheet</h4><p>Employee selects week (defaults to last Monday). For each active project allocation that week, enters hours worked and selects activity tags from a fixed list (or types custom).</p></div></div>
+        <div class="flow-step"><div class="fs-num">3</div><div class="fs-content"><h4>Server Validation</h4><p>Backend checks: hours ≤ (allocation% × max weekly hours), total ≤ max weekly hours, no duplicate for same week, no future week submissions.</p></div></div>
+        <div class="flow-step"><div class="fs-num">4</div><div class="fs-content"><h4>View History</h4><p>Employee can view all past weeks with SUBMITTED/MISSED status. Can drill into any submitted week to see project breakdown and activity tags.</p></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title purple">Background Scheduler Workflow</div>
+        <div class="flow-step"><div class="fs-num">1</div><div class="fs-content"><h4>Trigger (Configurable Interval)</h4><p>Node-cron fires based on admin-configured interval (default 4 hours). Three jobs run in sequence to avoid data inconsistency.</p></div></div>
+        <div class="flow-step"><div class="fs-num">2</div><div class="fs-content"><h4>Compute Utilisation</h4><p>For each employee, sums <code>utilisation %</code> of all allocations where <code>fromDate ≤ today ≤ toDate &amp;&amp; isActive=true</code>. Updates <code>currentUtilisation</code> and sets BENCH/ALLOCATED status.</p></div></div>
+        <div class="flow-step"><div class="fs-num">3</div><div class="fs-content"><h4>Flag Project Health</h4><p>For each ACTIVE project: checks overdue milestones (IN_PROGRESS past dueDate), checks logged hours vs expected (allocation% × maxWeeklyHours) per resource. Sets AT_RISK / ATTENTION / ON_TRACK.</p></div></div>
+        <div class="flow-step"><div class="fs-num">4</div><div class="fs-content"><h4>Mark Missed Timesheets</h4><p>For each employee with at least one active allocation, checks if a timesheet exists for last completed week. If not, inserts a MISSED record. This enables the reminder banner and manager visibility.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 7 — IMPLEMENTATION PLAN ===== -->
+  <section class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div>
+        <div class="section-title">Implementation Plan</div>
+        <div class="section-subtitle">Phased delivery — 8 weeks, backend-first with parallel frontend</div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-week">Week 1</div>
+        <div class="tl-title">Project Setup &amp; Core Infrastructure</div>
+        <ul class="tl-items">
+          <li>Initialise Node.js/Express monorepo + React Vite project</li>
+          <li>Setup MongoDB Atlas / local instance, configure Mongoose</li>
+          <li>Define all Mongoose schemas (users, employees, projects, allocations, timesheets, system_config)</li>
+          <li>Database seed script: first admin account insertion</li>
+          <li>JWT auth middleware (login, role-guard, blacklist for logout)</li>
+          <li>Error handling middleware, request validation (Joi/Zod), CORS setup</li>
+          <li>React Router setup, Tailwind + Bootstrap integration, Auth context provider</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 2</div>
+        <div class="tl-title">Admin Module — Users &amp; Employees</div>
+        <ul class="tl-items">
+          <li>All /api/admin/users endpoints (CRUD, deactivate, reactivate, reset password)</li>
+          <li>All /api/admin/employees endpoints (CRUD, deactivate, skills management)</li>
+          <li>Force password change flow (flag check on login)</li>
+          <li>React: Login page, Change Password screen, Admin dashboard shell</li>
+          <li>React: Manage Users screens (list, create, reset, deactivate/reactivate)</li>
+          <li>React: Manage Employees screens (list, add, update, deactivate, skills)</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 3</div>
+        <div class="tl-title">Admin Module — Projects &amp; System Config</div>
+        <ul class="tl-items">
+          <li>All /api/admin/projects endpoints (CRUD, milestone management)</li>
+          <li>/api/admin/allocations (read-only company-wide view)</li>
+          <li>/api/admin/config (GET + PUT system configuration)</li>
+          <li>React: Manage Projects screens (list, create, update, milestones)</li>
+          <li>React: All Allocations view, System Configuration screen</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 4</div>
+        <div class="tl-title">Manager Module — Resources &amp; Allocations</div>
+        <ul class="tl-items">
+          <li>/api/manager/resources/dashboard and employee drill-down</li>
+          <li>/api/manager/allocations (create, end)</li>
+          <li>Allocation validation logic: overlap query, over-allocation guard (sum ≤ 100%)</li>
+          <li>React: Resource Dashboard screen, Employee detail panel</li>
+          <li>React: Allocate Resource screens (AI search path + Direct path + End allocation)</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 5</div>
+        <div class="tl-title">Manager Module — Projects, Timesheets &amp; Background Scheduler</div>
+        <ul class="tl-items">
+          <li>/api/manager/projects (list + detail with health flags)</li>
+          <li>/api/manager/timesheets (team view + employee detail)</li>
+          <li>Background scheduler setup with node-cron</li>
+          <li>Utilisation compute job, health flagging job, missed timesheet job</li>
+          <li>React: My Projects screen (health status, milestone view, risk flags)</li>
+          <li>React: Timesheets screen (team view, filter by week)</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 6</div>
+        <div class="tl-title">Employee Module &amp; AI Integration</div>
+        <ul class="tl-items">
+          <li>All /api/employee endpoints (timesheets submit + history, allocations)</li>
+          <li>Timesheet validation: hours limits, duplicate check, future week block</li>
+          <li>LLM service adapter (Strategy Pattern: Gemini + Groq implementations)</li>
+          <li>/api/manager/ai/skill-match — pre-filter + LLM call + parse response</li>
+          <li>/api/manager/ai/risk-summary — data collection + LLM call</li>
+          <li>React: Employee menu, Submit Timesheet, View Timesheets, View Allocations</li>
+          <li>React: AI Assistant screen (Skill Match + Risk Summary)</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 7</div>
+        <div class="tl-title">Integration, Testing &amp; Polish</div>
+        <ul class="tl-items">
+          <li>End-to-end integration testing of all three role flows</li>
+          <li>Postman/Jest API tests for critical validation rules</li>
+          <li>React: responsive layout checks, error state handling, loading states</li>
+          <li>Security review: JWT expiry, role guard edge cases, input sanitisation</li>
+          <li>Performance: index review, query optimisation for scheduler</li>
+          <li>SOLID / design pattern documentation in README</li>
+        </ul>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-week">Week 8</div>
+        <div class="tl-title">Final QA, Deployment &amp; Documentation</div>
+        <ul class="tl-items">
+          <li>Full regression testing across all screens and user roles</li>
+          <li>Environment configuration (.env setup, LLM key management)</li>
+          <li>Production deployment (Railway / Render for backend, Vercel for frontend)</li>
+          <li>README: setup guide, SOLID examples, design patterns used, design principles</li>
+          <li>Final demo walkthrough preparation</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 8 — TECH STACK ===== -->
+  <section class="section" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <div>
+        <div class="section-title">Tech Stack &amp; Design Principles</div>
+        <div class="section-subtitle">Libraries, design patterns, and SOLID compliance guide</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title blue">Frontend Stack</div>
+        <table>
+          <tr><th>Library</th><th>Purpose</th></tr>
+          <tr><td><code>React 18</code></td><td>UI framework, component model, hooks</td></tr>
+          <tr><td><code>React Router v6</code></td><td>Client-side routing, role-based guards</td></tr>
+          <tr><td><code>Tailwind CSS v3</code></td><td>Utility-first styling, responsive layouts</td></tr>
+          <tr><td><code>Bootstrap 5</code></td><td>Pre-built form components, table, modals</td></tr>
+          <tr><td><code>Axios</code></td><td>HTTP client with interceptors (JWT injection)</td></tr>
+          <tr><td><code>React Query</code></td><td>Server state management, caching, loading states</td></tr>
+          <tr><td><code>React Hook Form</code></td><td>Form state + validation</td></tr>
+          <tr><td><code>Zod</code></td><td>Schema validation (shared with backend)</td></tr>
+          <tr><td><code>Lucide React</code></td><td>Icon library</td></tr>
+          <tr><td><code>React Hot Toast</code></td><td>Notifications / success-error feedback</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title green">Backend Stack</div>
+        <table>
+          <tr><th>Library</th><th>Purpose</th></tr>
+          <tr><td><code>Node.js 20+</code></td><td>Runtime</td></tr>
+          <tr><td><code>Express.js 4</code></td><td>REST API framework</td></tr>
+          <tr><td><code>Mongoose 8</code></td><td>MongoDB ODM, schema definitions, validation</td></tr>
+          <tr><td><code>jsonwebtoken</code></td><td>JWT sign/verify</td></tr>
+          <tr><td><code>bcryptjs</code></td><td>Password hashing</td></tr>
+          <tr><td><code>node-cron</code></td><td>Background scheduler jobs</td></tr>
+          <tr><td><code>Joi / Zod</code></td><td>Request body validation</td></tr>
+          <tr><td><code>helmet</code></td><td>HTTP security headers</td></tr>
+          <tr><td><code>morgan</code></td><td>Request logging</td></tr>
+          <tr><td><code>dotenv</code></td><td>Environment config management</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- SOLID -->
+    <div class="card">
+      <div class="card-title purple">SOLID Principles — Where Applied</div>
+      <div class="principle">
+        <div class="p-name">S — Single Responsibility Principle</div>
+        <div class="p-desc">Each controller handles one resource group (UserController, EmployeeController, ProjectController, TimesheetController, AIController). Scheduler is separated into three single-purpose jobs (computeUtilisation, flagProjectHealth, markMissedTimesheets).</div>
+        <div class="p-loc">Example: EmployeeController only handles employee CRUD — skill management is in a separate SkillController.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">O — Open/Closed Principle</div>
+        <div class="p-desc">LLM service uses Strategy Pattern — GeminiAdapter and GroqAdapter both implement ILLMAdapter interface. Adding a new LLM provider (e.g. OpenAI) requires adding a new adapter class without modifying existing code.</div>
+        <div class="p-loc">Example: <code>src/services/llm/ILLMAdapter.js</code>, <code>GeminiAdapter.js</code>, <code>GroqAdapter.js</code>.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">L — Liskov Substitution Principle</div>
+        <div class="p-desc">GeminiAdapter and GroqAdapter are interchangeable wherever ILLMAdapter is expected. The AIService constructor takes any ILLMAdapter — it never checks which concrete class it received. The scheduler jobs can be swapped with mock implementations in tests.</div>
+        <div class="p-loc">Example: <code>new AIService(new GeminiAdapter(apiKey))</code> vs <code>new AIService(new GroqAdapter(apiKey))</code>.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">I — Interface Segregation Principle</div>
+        <div class="p-desc">IEmployeeRepository and IProjectRepository are separate interfaces. Admin and Manager use different subsets of employee-related methods — AdminEmployeeService uses the full interface, while ManagerResourceService uses a narrower read-only IResourceReader interface.</div>
+        <div class="p-loc">Example: Manager routes import ResourceService, not AdminEmployeeService — they never gain access to deactivate/update methods.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">D — Dependency Inversion Principle</div>
+        <div class="p-desc">Controllers depend on service interfaces, not concrete service classes. Services depend on repository interfaces, not Mongoose models directly. Config is injected at startup — no hardcoded database connections inside business logic.</div>
+        <div class="p-loc">Example: <code>AllocationController(allocationService: IAllocationService)</code> — testable without a real database.</div>
+      </div>
+    </div>
+
+    <!-- Design Patterns -->
+    <div class="card">
+      <div class="card-title teal">Design Patterns Used</div>
+      <div class="grid-2">
+        <div class="principle">
+          <div class="p-name">Repository Pattern</div>
+          <div class="p-desc">All database operations abstracted behind repository classes (UserRepository, EmployeeRepository, AllocationRepository, TimesheetRepository). Controllers and services never call Mongoose directly.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">Strategy Pattern — LLM Adapter</div>
+          <div class="p-desc">LLM provider (Gemini/Groq) selected at runtime from system_config. AIService holds a reference to the current ILLMAdapter. Admin can switch providers without restarting the server.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">Singleton Pattern — DB Connection</div>
+          <div class="p-desc">MongoDB connection is established once and reused across the application. DatabaseManager class ensures a single connection pool is shared.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">Factory Pattern — Router Setup</div>
+          <div class="p-desc">routerFactory(role) creates role-specific Express routers with appropriate middleware chains. Ensures role guards are always applied consistently — no risk of forgetting auth middleware on a new route.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">Observer Pattern — Scheduler Events</div>
+          <div class="p-desc">SchedulerEventEmitter broadcasts events after each job completes (utilisationComputed, healthFlagged, timesheetsMissedMarked). Logging and future webhook notifications subscribe to these events without modifying the scheduler jobs.</div>
+        </div>
+        <div class="principle">
+          <div class="p-name">Adapter Pattern — LLM Provider</div>
+          <div class="p-desc">Wraps different LLM APIs (Gemini REST, Groq REST) behind a uniform interface: <code>suggest(prompt: string): Promise&lt;string&gt;</code>. Hides provider-specific request formats and response parsing.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Principles -->
+    <div class="card">
+      <div class="card-title amber">Design Principles Applied</div>
+      <div class="principle">
+        <div class="p-name">DRY — Don't Repeat Yourself</div>
+        <div class="p-desc">Allocation overlap validation logic written once in AllocationService and called by both the AI-assisted path and the direct allocation path. Zod schemas defined once and reused on frontend + backend. weekStart normalisation (always Monday) is a single utility function.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">Separation of Concerns</div>
+        <div class="p-desc">Clear layering: Routes → Controllers → Services → Repositories → Database. Frontend: Components → Hooks (API calls) → Store (auth state). Scheduler is a completely independent module — not tangled with the API layer.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">Fail Fast</div>
+        <div class="p-desc">Allocation creation validates over-allocation synchronously before calling any LLM. Timesheet submission validates hours limits before persisting. If any validation fails, the request is rejected immediately with a descriptive error — no partial writes.</div>
+      </div>
+      <div class="principle">
+        <div class="p-name">YAGNI — You Aren't Gonna Need It</div>
+        <div class="p-desc">No approve/reject timesheet workflow built (BRD says read-only for managers). No notifications system built speculatively. No multi-org support. The system solves exactly what the BRD asks for.</div>
+      </div>
+    </div>
+
+    <!-- Project Structure -->
+    <div class="card">
+      <div class="card-title pink">Recommended Project Structure</div>
+      <div class="grid-2">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Backend</div>
+          <pre>backend/
+├─ src/
+│  ├─ config/          # DB, env, constants
+│  ├─ models/          # Mongoose schemas
+│  ├─ repositories/    # DB access layer
+│  ├─ services/
+│  │  ├─ llm/          # ILLMAdapter, Gemini, Groq
+│  │  └─ scheduler/    # 3 cron jobs
+│  ├─ controllers/     # Request handlers
+│  ├─ routes/          # Express routers by role
+│  ├─ middleware/       # auth, role-guard, validate
+│  └─ utils/           # weekStart, dateHelpers
+├─ seeds/              # Admin seed script
+└─ server.js</pre>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Frontend</div>
+          <pre>frontend/
+├─ src/
+│  ├─ api/             # Axios instance + endpoints
+│  ├─ components/
+│  │  ├─ admin/
+│  │  ├─ manager/
+│  │  └─ employee/
+│  ├─ hooks/           # useAuth, useAllocations, etc.
+│  ├─ pages/           # Route-level components
+│  ├─ contexts/        # AuthContext, ConfigContext
+│  ├─ utils/           # Date formatting, validators
+│  └─ App.jsx          # Router + role guards
+├─ tailwind.config.js
+└─ vite.config.js</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /main-content -->
+
+<script>
+// ===== MERMAID INIT =====
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    background: '#161b27',
+    primaryColor: '#1e2535',
+    primaryBorderColor: '#6366f1',
+    primaryTextColor: '#e2e8f0',
+    secondaryColor: '#1a1f35',
+    tertiaryColor: '#0f1117',
+    lineColor: '#475569',
+    edgeLabelBackground: '#161b27',
+    fontFamily: 'Segoe UI, system-ui, sans-serif',
+    fontSize: '13px',
+  },
+  classDiagram: { useMaxWidth: false },
+  sequence: { useMaxWidth: false, mirrorActors: false },
+});
+
+async function renderDiagram(id, code) {
+  try {
+    const { svg } = await mermaid.render(id + '-svg', code);
+    document.getElementById(id).innerHTML = svg;
+  } catch(e) {
+    document.getElementById(id).innerHTML = '<p style="color:#f87171;font-size:12px;">Diagram render error: ' + e.message + '</p>';
+    console.error(id, e);
+  }
+}
+
+// ===== DIAGRAMS =====
+
+// 1A - Admin Class Diagram
+renderDiagram('diag-admin', `classDiagram
+  class AdminController {
+    +createUser(req, res)
+    +listUsers(req, res)
+    +deactivateUser(req, res)
+    +reactivateUser(req, res)
+    +resetPassword(req, res)
+    +createEmployee(req, res)
+    +updateEmployee(req, res)
+    +deactivateEmployee(req, res)
+    +addSkill(req, res)
+    +updateSkill(req, res)
+    +removeSkill(req, res)
+    +createProject(req, res)
+    +updateProject(req, res)
+    +addMilestone(req, res)
+    +updateMilestone(req, res)
+    +getAllAllocations(req, res)
+    +getConfig(req, res)
+    +updateConfig(req, res)
+  }
+  class UserService {
+    +createUser(dto) User
+    +deactivateUser(id) void
+    +reactivateUser(id) void
+    +resetPassword(id, tempPwd) void
+    +listUsers() User[]
+  }
+  class EmployeeService {
+    +createEmployee(dto) Employee
+    +updateEmployee(id, dto) Employee
+    +deactivateEmployee(id) void
+    +addSkill(empId, skill) void
+    +removeSkill(empId, skillId) void
+  }
+  class ProjectService {
+    +createProject(dto) Project
+    +updateProject(id, dto) Project
+    +addMilestone(projectId, dto) Milestone
+    +updateMilestone(projectId, msId, status) void
+  }
+  class SystemConfigService {
+    +getConfig() SystemConfig
+    +updateConfig(dto) SystemConfig
+  }
+  class UserRepository {
+    +findAll() User[]
+    +findById(id) User
+    +save(user) User
+    +update(id, data) User
+  }
+  class EmployeeRepository {
+    +findAll(filters) Employee[]
+    +findById(id) Employee
+    +save(emp) Employee
+    +update(id, data) Employee
+  }
+  AdminController --> UserService
+  AdminController --> EmployeeService
+  AdminController --> ProjectService
+  AdminController --> SystemConfigService
+  UserService --> UserRepository
+  EmployeeService --> EmployeeRepository
+`);
+
+// 1B - Manager Class Diagram
+renderDiagram('diag-manager', `classDiagram
+  class ManagerController {
+    +getResourceDashboard(req, res)
+    +getEmployeeDetail(req, res)
+    +createAllocation(req, res)
+    +endAllocation(req, res)
+    +getMyProjects(req, res)
+    +getProjectDetail(req, res)
+    +getTeamTimesheets(req, res)
+    +aiSkillMatch(req, res)
+    +aiRiskSummary(req, res)
+  }
+  class ResourceService {
+    +getDashboard() ResourceDashboard
+    +getEmployeeDetail(id) EmployeeDetail
+    +findEligibleCandidates(req) Employee[]
+  }
+  class AllocationService {
+    +createAllocation(dto) Allocation
+    +endAllocation(id, mgr) void
+    +checkOverAllocation(empId, dates, pct) boolean
+  }
+  class AIService {
+    -adapter ILLMAdapter
+    +skillMatch(employees, requirement) AIResult[]
+    +riskSummary(project, milestones, hours) string
+  }
+  class ILLMAdapter {
+    <<interface>>
+    +call(prompt) string
+  }
+  class GeminiAdapter {
+    +call(prompt) string
+  }
+  class GroqAdapter {
+    +call(prompt) string
+  }
+  class AllocationRepository {
+    +findActiveByEmployee(empId, fromDate, toDate) Allocation[]
+    +findByProject(projectId) Allocation[]
+    +save(alloc) Allocation
+    +endAllocation(id, date) void
+  }
+  ManagerController --> ResourceService
+  ManagerController --> AllocationService
+  ManagerController --> AIService
+  AIService --> ILLMAdapter
+  GeminiAdapter ..|> ILLMAdapter
+  GroqAdapter ..|> ILLMAdapter
+  AllocationService --> AllocationRepository
+`);
+
+// 1C - Employee Class Diagram
+renderDiagram('diag-employee', `classDiagram
+  class EmployeeController {
+    +getMyAllocations(req, res)
+    +getMyTimesheets(req, res)
+    +getWeekTimesheetCheck(req, res)
+    +submitTimesheet(req, res)
+    +getTimesheetDetail(req, res)
+  }
+  class TimesheetService {
+    +submitTimesheet(empId, dto) Timesheet
+    +getHistory(empId) Timesheet[]
+    +getWeekDetail(empId, weekStart) Timesheet
+    +checkMissedWeek(empId) boolean
+    +validateHours(empId, entries, weekStart) void
+  }
+  class TimesheetValidator {
+    +checkDuplicate(empId, weekStart) boolean
+    +checkFutureWeek(weekStart) boolean
+    +checkProjectHoursLimit(alloc, hours, maxWkly) boolean
+    +checkTotalHoursLimit(entries, maxWkly) boolean
+  }
+  class TimesheetRepository {
+    +findByEmployee(empId) Timesheet[]
+    +findByEmployeeAndWeek(empId, weekStart) Timesheet
+    +save(ts) Timesheet
+    +insertMissed(empId, weekStart) void
+  }
+  class AllocationRepository {
+    +findActiveForWeek(empId, weekStart) Allocation[]
+  }
+  EmployeeController --> TimesheetService
+  TimesheetService --> TimesheetValidator
+  TimesheetService --> TimesheetRepository
+  TimesheetService --> AllocationRepository
+`);
+
+// 1D - Full Application Class Diagram
+renderDiagram('diag-full', `classDiagram
+  class User {
+    +ObjectId _id
+    +String username
+    +String passwordHash
+    +Enum role
+    +Boolean isActive
+    +Boolean forcePasswordChange
+  }
+  class Employee {
+    +ObjectId _id
+    +ObjectId userId
+    +String fullName
+    +String department
+    +Enum status
+    +Number currentUtilisation
+    +Skill[] skills
+  }
+  class Project {
+    +ObjectId _id
+    +String name
+    +ObjectId managerId
+    +Date startDate
+    +Date endDate
+    +Enum status
+    +Enum healthStatus
+    +Milestone[] milestones
+  }
+  class Allocation {
+    +ObjectId _id
+    +ObjectId employeeId
+    +ObjectId projectId
+    +ObjectId managerId
+    +Number utilisation
+    +Date fromDate
+    +Date toDate
+    +Boolean isActive
+  }
+  class Timesheet {
+    +ObjectId _id
+    +ObjectId employeeId
+    +Date weekStart
+    +Enum status
+    +Number totalHours
+    +TimesheetEntry[] entries
+  }
+  class SystemConfig {
+    +Enum llmProvider
+    +String llmApiKey
+    +Number schedulerIntervalHours
+    +Number maxWeeklyHours
+  }
+  class Skill {
+    +String name
+    +Enum category
+    +Enum proficiency
+  }
+  class Milestone {
+    +String title
+    +Date dueDate
+    +Enum status
+  }
+  class TimesheetEntry {
+    +ObjectId projectId
+    +Number hours
+    +String[] activityTags
+  }
+  class AuthMiddleware {
+    +verifyToken(req, res, next)
+    +requireRole(role) Middleware
+  }
+  class SchedulerService {
+    +computeUtilisation()
+    +flagProjectHealth()
+    +markMissedTimesheets()
+    +start(intervalHours)
+  }
+  class AIService {
+    +skillMatch(employees, req) AIResult[]
+    +riskSummary(project) string
+  }
+  User "1" --> "0..1" Employee : links to
+  Employee "1" --> "*" Allocation : has
+  Project "1" --> "*" Allocation : has
+  Project "1" --> "*" Milestone : contains
+  Employee "1" --> "*" Skill : has
+  Employee "1" --> "*" Timesheet : submits
+  Timesheet "1" --> "*" TimesheetEntry : contains
+  Project "*" --> "1" User : managed by
+  SchedulerService --> Employee : updates utilisation
+  SchedulerService --> Project : flags health
+  SchedulerService --> Timesheet : marks missed
+  AIService --> Employee : reads skills + alloc
+  AIService --> Timesheet : reads activity tags
+  AuthMiddleware --> User : validates
+`);
+
+// Sequence: Auth
+renderDiagram('seq-auth', `sequenceDiagram
+  participant U as User
+  participant FE as React Frontend
+  participant BE as Express Backend
+  participant DB as MongoDB
+
+  U->>FE: Enter username + password
+  FE->>BE: POST /api/auth/login
+  BE->>DB: Find user by username
+  DB-->>BE: User document
+  BE->>BE: bcrypt.compare(password, hash)
+  alt Invalid credentials
+    BE-->>FE: 401 Unauthorized
+    FE-->>U: Show error message
+  else Valid credentials + forcePasswordChange=true
+    BE-->>FE: 200 {token, role, forcePasswordChange:true}
+    FE->>FE: Store token, redirect to /change-password
+    U->>FE: Enter new password + confirm
+    FE->>BE: POST /api/auth/change-password
+    BE->>DB: Update passwordHash, set forcePasswordChange=false
+    DB-->>BE: Updated
+    BE-->>FE: 200 Success
+    FE->>FE: Redirect to role-based dashboard
+  else Valid credentials, no force change
+    BE-->>FE: 200 {token, role}
+    FE->>FE: Store token in memory + redirect to dashboard
+  end
+`);
+
+// Sequence: Allocation
+renderDiagram('seq-alloc', `sequenceDiagram
+  participant M as Manager
+  participant FE as React Frontend
+  participant BE as Express Backend
+  participant LLM as LLM API (Gemini/Groq)
+  participant DB as MongoDB
+
+  M->>FE: Select project, enter requirement text
+  FE->>BE: POST /api/manager/ai/skill-match {projectId, requirement}
+  BE->>DB: Fetch all employees with skills + allocations
+  DB-->>BE: Employee list
+  BE->>BE: Pre-filter: exclude employees with 100% utilisation in date range
+  BE->>LLM: Send: candidates summary + requirement
+  LLM-->>BE: Ranked candidates JSON with reasons
+  BE-->>FE: 200 AI match results
+  FE-->>M: Display ranked list with reasons
+  M->>FE: Select employee, set utilisation% + dates
+  FE->>BE: POST /api/manager/allocations
+  BE->>DB: Query: sum of allocation% for employee in overlapping period
+  DB-->>BE: Current total utilisation
+  alt Over 100% after new allocation
+    BE-->>FE: 400 Over-allocation error
+    FE-->>M: Show validation error
+  else Valid allocation
+    BE->>DB: Insert allocation record
+    BE->>DB: Update employee.currentUtilisation + status=ALLOCATED
+    DB-->>BE: Saved
+    BE-->>FE: 201 Allocation created
+    FE-->>M: Success confirmation
+  end
+`);
+
+// Sequence: Timesheet
+renderDiagram('seq-timesheet', `sequenceDiagram
+  participant E as Employee
+  participant FE as React Frontend
+  participant BE as Express Backend
+  participant DB as MongoDB
+
+  E->>FE: Navigate to Submit Timesheet
+  FE->>BE: GET /api/employee/allocations?week=12-05-2026
+  BE->>DB: Find active allocations for employee covering that week
+  DB-->>BE: Allocation list (projectId, utilisation%)
+  BE-->>FE: Active projects for week
+  FE-->>E: Show projects with expected hours each
+  E->>FE: Enter hours + activity tags per project
+  FE->>BE: POST /api/employee/timesheets {weekStart, entries[]}
+  BE->>BE: Validate: no future week
+  BE->>DB: Check existing timesheet for same week
+  DB-->>BE: No duplicate found
+  BE->>BE: Validate: hours per project <= allocation% x maxWeeklyHours
+  BE->>BE: Validate: total hours <= maxWeeklyHours
+  alt Any validation fails
+    BE-->>FE: 400 Validation error with details
+    FE-->>E: Show specific error
+  else All valid
+    BE->>DB: Insert Timesheet document with entries
+    DB-->>BE: Saved
+    BE-->>FE: 201 {status: SUBMITTED}
+    FE-->>E: Success - show summary screen
+  end
+`);
+
+// Sequence: Scheduler
+renderDiagram('seq-scheduler', `sequenceDiagram
+  participant CR as node-cron
+  participant SC as SchedulerService
+  participant DB as MongoDB
+
+  CR->>SC: Trigger (every N hours)
+  Note over SC: Job 1: Compute Utilisation
+  SC->>DB: Find all active allocations (isActive=true, date range covers today)
+  DB-->>SC: Active allocations with empId + utilisation%
+  SC->>SC: Group by employeeId, sum utilisation%
+  SC->>DB: BulkWrite: update employee.currentUtilisation + status
+  DB-->>SC: Updated
+  Note over SC: Job 2: Flag Project Health
+  SC->>DB: Find all ACTIVE projects with milestones
+  DB-->>SC: Projects + milestones
+  SC->>DB: Find recent timesheets for allocated employees
+  DB-->>SC: Last 2 weeks of timesheet data
+  SC->>SC: Evaluate: overdue milestones? Low hours logged vs expected?
+  SC->>DB: Update project.healthStatus (ON_TRACK/ATTENTION/AT_RISK)
+  DB-->>SC: Updated
+  Note over SC: Job 3: Mark Missed Timesheets
+  SC->>DB: Find employees with active allocations
+  DB-->>SC: Employee list
+  SC->>SC: Compute last completed week start (last Monday)
+  SC->>DB: Find timesheets for that week per employee
+  DB-->>SC: Submitted timesheets
+  SC->>SC: Identify employees with no timesheet for last week
+  SC->>DB: Insert MISSED timesheet records for each
+  DB-->>SC: Done
+`);
+
+// ERD
+renderDiagram('diag-erd', `erDiagram
+  users {
+    ObjectId _id PK
+    string username
+    string passwordHash
+    enum role
+    boolean isActive
+    boolean forcePasswordChange
+  }
+  employees {
+    ObjectId _id PK
+    ObjectId userId FK
+    string fullName
+    string department
+    enum status
+    number currentUtilisation
+  }
+  projects {
+    ObjectId _id PK
+    string name
+    ObjectId managerId FK
+    enum status
+    enum healthStatus
+  }
+  allocations {
+    ObjectId _id PK
+    ObjectId employeeId FK
+    ObjectId projectId FK
+    ObjectId managerId FK
+    number utilisation
+    date fromDate
+    date toDate
+    boolean isActive
+  }
+  timesheets {
+    ObjectId _id PK
+    ObjectId employeeId FK
+    date weekStart
+    enum status
+    number totalHours
+  }
+  system_config {
+    ObjectId _id PK
+    enum llmProvider
+    string llmApiKey
+    number maxWeeklyHours
+    number schedulerIntervalHours
+  }
+  users ||--o| employees : "has profile"
+  employees ||--o{ allocations : "allocated in"
+  projects ||--o{ allocations : "has"
+  employees ||--o{ timesheets : "submits"
+  users ||--o{ projects : "manages"
+`);
+
+</script>
+</body>
+</html>
