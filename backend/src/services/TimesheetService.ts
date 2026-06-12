@@ -110,7 +110,7 @@ class TimesheetService {
       return existing;
     } else {
       const timesheet = await timesheetRepository.create({
-        employeeId,
+        resourceId: employeeId,
         weekStart: normalizedWeekStart,
         status: 'SUBMITTED',
         totalHours,
