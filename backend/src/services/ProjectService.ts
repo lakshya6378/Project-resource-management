@@ -72,7 +72,7 @@ class ProjectService {
     const enhancedProjects = [];
     for (const project of projects) {
       const { healthStatus, riskFlags } = await this._computeProjectHealthAndFlags(project);
-      enhancedProjects.push({ ...project, healthStatus, riskFlags });
+      enhancedProjects.push({ ...project.toObject(), healthStatus, riskFlags });
     }
     
     return enhancedProjects;
