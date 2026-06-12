@@ -66,6 +66,18 @@ class TimesheetRepository {
   }
 
   /**
+   * Find pending access requests for multiple employees.
+   */
+  async findPendingAccessRequestsByEmployees(employeeIds) {
+    return Timesheet.find({
+      resourceId: { $in: employeeIds },
+      'accessRequest.status': 'PENDING',
+    })
+      .populate('resourceId', 'fullName department')
+      .populate('entries.projectId', 'name');
+  }
+
+  /**
    * Check if a timesheet exists for a specific employee and week.
    * Used by scheduler to detect missed timesheets.
    */

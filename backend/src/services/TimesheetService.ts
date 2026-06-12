@@ -161,6 +161,29 @@ class TimesheetService {
     return timesheetRepository.findByEmployeesAndWeek(employeeIds, normalizedWeekStart);
   }
 
+  async getPendingAccessRequests(managerId) {
+    const allocations = await allocationRepository.findAll({ isActive: true });
+    const managerAllocations = allocations.filter(
+      (a: any) => {
+        const mgrId = a.managerId?._id || a.managerId;
+        return mgrId?.toString() === managerId.toString();
+      }
+    );
+
+    const employeeIds = [...new Set(
+      managerAllocations.map((a: any) => {
+        const resId = a.resourceId?._id || a.resourceId;
+        return resId ? resId.toString() : null;
+      }).filter(id => id !== null)
+    )];
+
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    return timesheetRepository.findPendingAccessRequestsByEmployees(employeeIds);
+  }
+
   async requestMissedTimesheetAccess(employeeId, weekStart, reason) {
     const normalizedWeekStart = normalizeToMonday(new Date(weekStart));
     const timesheet = await timesheetRepository.findByEmployeeAndWeek(employeeId, normalizedWeekStart);

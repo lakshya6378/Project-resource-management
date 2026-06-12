@@ -22,6 +22,16 @@ class ManagerTimesheetController {
     }
   }
 
+  /** GET /api/manager/timesheets/pending-requests */
+  async getPendingRequests(req, res, next) {
+    try {
+      const timesheets = await timesheetService.getPendingAccessRequests(req.user.id);
+      sendSuccess(res, timesheets, 'Pending access requests retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   /** POST /api/manager/timesheets/:id/review-access */
   async reviewTimesheetAccess(req, res, next) {
     try {

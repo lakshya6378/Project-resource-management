@@ -713,12 +713,30 @@ const teamTimesheetsScreen = async () => {
 const reviewAccessScreen = async () => {
   ui.header('Review Timesheet Access Request');
   try {
+    const response = await api.getPendingTimesheetRequests();
+    const pendingRequests = response.data;
+
+    if (!pendingRequests || pendingRequests.length === 0) {
+      ui.info('There are no pending timesheet access requests from your team.');
+      return;
+    }
+
     const { timesheetId } = await inquirer.prompt([
-      { type: 'input', name: 'timesheetId', message: 'Enter Timesheet ID:' }
+      {
+        type: 'list',
+        name: 'timesheetId',
+        message: 'Select a pending access request to review:',
+        choices: pendingRequests.map((req) => ({
+          name: `${req.resourceId?.fullName || 'Unknown'} - Week of ${req.weekStart.split('T')[0]} - Reason: ${req.accessRequest?.reason || 'No reason'}`,
+          value: req._id,
+        })),
+      },
     ]);
+
     const { approved } = await inquirer.prompt([
       { type: 'confirm', name: 'approved', message: 'Approve access request?', default: false }
     ]);
+    
     await api.reviewTimesheetAccess(timesheetId, { approved });
     ui.success(`Timesheet access request ${approved ? 'approved' : 'rejected'} successfully.`);
   } catch (err) {

@@ -169,6 +169,20 @@ router.get('/timesheets/team', managerTimesheetController.getTeamTimesheets);
 
 /**
  * @swagger
+ * /manager/timesheets/pending-requests:
+ *   get:
+ *     tags: [Manager - Timesheets]
+ *     summary: Get pending access requests from team members
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending access requests retrieved
+ */
+router.get('/timesheets/pending-requests', managerTimesheetController.getPendingRequests);
+
+/**
+ * @swagger
  * /manager/timesheets/{id}/review-access:
  *   post:
  *     tags: [Manager - Timesheets]

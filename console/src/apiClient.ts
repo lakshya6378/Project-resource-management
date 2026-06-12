@@ -183,6 +183,9 @@ const teamSearch = (query) => client.get('/manager/ai/team-search', { params: { 
 const reviewTimesheetAccess = (id, data) =>
   client.post(`/manager/timesheets/${id}/review-access`, data);
 
+const getPendingTimesheetRequests = () =>
+  client.get('/manager/timesheets/pending-requests');
+
 const getTeamEmployees = () => client.get('/manager/employees');
 
 const getMyManagerProjects = () => client.get('/manager/projects');
@@ -257,10 +260,11 @@ export default {
   getTeamTimesheets,
   suggestTeam,
   generateRiskSummary,
+  teamSearch,
   reviewTimesheetAccess,
+  getPendingTimesheetRequests,
   getTeamEmployees,
   getMyManagerProjects,
-  teamSearch,
   // Employee
   getMyAllocations,
   submitTimesheet,
