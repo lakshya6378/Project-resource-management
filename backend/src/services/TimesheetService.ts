@@ -69,14 +69,15 @@ class TimesheetService {
       employeeId, normalizedWeekStart, weekEnd
     );
 
-    const allocatedProjectIds = activeAllocations.map(
-      (a: any) => (a.projectId?._id || a.projectId).toString()
-    );
+    const allocatedProjectIds = activeAllocations.map((a: any) => {
+      const pid = a.projectId?._id || a.projectId;
+      return pid ? pid.toString() : null;
+    }).filter(Boolean);
 
     // Validate entries
     let totalHours = 0;
     for (const entry of entries) {
-      const entryProjectId = entry.projectId.toString();
+      const entryProjectId = entry.projectId ? entry.projectId.toString() : null;
 
       // Check employee is allocated to this project
       if (!allocatedProjectIds.includes(entryProjectId)) {
@@ -143,7 +144,7 @@ class TimesheetService {
     const managerAllocations = allocations.filter(
       (a: any) => {
         const mgrId = a.managerId?._id || a.managerId;
-        return mgrId?.toString() === managerId.toString();
+        return mgrId && managerId ? mgrId.toString() === managerId.toString() : false;
       }
     );
 
@@ -166,7 +167,7 @@ class TimesheetService {
     const managerAllocations = allocations.filter(
       (a: any) => {
         const mgrId = a.managerId?._id || a.managerId;
-        return mgrId?.toString() === managerId.toString();
+        return mgrId && managerId ? mgrId.toString() === managerId.toString() : false;
       }
     );
 

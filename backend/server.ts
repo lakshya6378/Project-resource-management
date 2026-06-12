@@ -122,7 +122,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
 
 // Export app for testing (supertest)
 export default app;
