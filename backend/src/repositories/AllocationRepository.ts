@@ -16,7 +16,7 @@ class AllocationRepository {
    */
   async findActiveByEmployeeInRange(employeeId, fromDate, toDate) {
     return Allocation.find({
-      employeeId,
+      resourceId: employeeId,
       isActive: true,
       fromDate: { $lte: new Date(toDate) },
       toDate: { $gte: new Date(fromDate) },
@@ -30,7 +30,7 @@ class AllocationRepository {
   async findActiveByEmployeeOnDate(employeeId, date) {
     const d = new Date(date);
     return Allocation.find({
-      employeeId,
+      resourceId: employeeId,
       isActive: true,
       fromDate: { $lte: d },
       toDate: { $gte: d },
@@ -45,7 +45,7 @@ class AllocationRepository {
     if (activeOnly) query.isActive = true;
 
     return Allocation.find(query)
-      .populate('employeeId', 'fullName department')
+      .populate('resourceId', 'fullName department')
       .sort({ fromDate: -1 });
   }
 
@@ -55,12 +55,12 @@ class AllocationRepository {
   async findAll(filters: any = {}) {
     const query: any = {};
 
-    if (filters.employeeId) query.employeeId = filters.employeeId;
+    if (filters.employeeId) query.resourceId = filters.employeeId;
     if (filters.projectId) query.projectId = filters.projectId;
     if (filters.isActive !== undefined) query.isActive = filters.isActive;
 
     return Allocation.find(query)
-      .populate('employeeId', 'fullName department')
+      .populate('resourceId', 'fullName department')
       .populate('projectId', 'name')
       .populate('managerId', 'fullName')
       .sort({ createdAt: -1 });
@@ -70,14 +70,14 @@ class AllocationRepository {
    * Find allocations for a specific employee (for employee's own view).
    */
   async findByEmployee(employeeId) {
-    return Allocation.find({ employeeId })
+    return Allocation.find({ resourceId: employeeId })
       .populate('projectId', 'name')
       .sort({ fromDate: -1 });
   }
 
   async findById(id) {
     return Allocation.findById(id)
-      .populate('employeeId', 'fullName')
+      .populate('resourceId', 'fullName')
       .populate('projectId', 'name managerId');
   }
 
@@ -102,7 +102,7 @@ class AllocationRepository {
    */
   async endAllAllocationsForEmployee(employeeId, endDate) {
     return Allocation.updateMany(
-      { employeeId, isActive: true },
+      { resourceId: employeeId, isActive: true },
       { $set: { toDate: endDate, isActive: false } }
     );
   }

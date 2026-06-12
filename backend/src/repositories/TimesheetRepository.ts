@@ -12,13 +12,13 @@ class TimesheetRepository {
   }
 
   async findByEmployee(employeeId) {
-    return Timesheet.find({ employeeId })
+    return Timesheet.find({ resourceId: employeeId })
       .populate('entries.projectId', 'name')
       .sort({ weekStart: -1 });
   }
 
   async findByEmployeeAndWeek(employeeId, weekStart) {
-    return Timesheet.findOne({ employeeId, weekStart })
+    return Timesheet.findOne({ resourceId: employeeId, weekStart })
       .populate('entries.projectId', 'name');
   }
 
@@ -32,7 +32,7 @@ class TimesheetRepository {
    */
   async insertMissed(employeeId, weekStart) {
     const timesheet = new Timesheet({
-      employeeId,
+      resourceId: employeeId,
       weekStart,
       status: 'MISSED',
       totalHours: 0,
@@ -47,7 +47,7 @@ class TimesheetRepository {
    */
   async findByWeek(weekStart) {
     return Timesheet.find({ weekStart })
-      .populate('employeeId', 'fullName department')
+      .populate('resourceId', 'fullName department')
       .populate('entries.projectId', 'name');
   }
 
@@ -58,10 +58,10 @@ class TimesheetRepository {
    */
   async findByEmployeesAndWeek(employeeIds, weekStart) {
     return Timesheet.find({
-      employeeId: { $in: employeeIds },
+      resourceId: { $in: employeeIds },
       weekStart,
     })
-      .populate('employeeId', 'fullName department')
+      .populate('resourceId', 'fullName department')
       .populate('entries.projectId', 'name');
   }
 
@@ -70,7 +70,7 @@ class TimesheetRepository {
    * Used by scheduler to detect missed timesheets.
    */
   async exists(employeeId, weekStart) {
-    const count = await Timesheet.countDocuments({ employeeId, weekStart });
+    const count = await Timesheet.countDocuments({ resourceId: employeeId, weekStart });
     return count > 0;
   }
 }

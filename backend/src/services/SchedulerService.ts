@@ -85,7 +85,7 @@ class SchedulerService {
       for (const allocation of expired) {
         await allocationRepository.endAllocation(allocation._id, allocation.toDate);
         expiredCount++;
-        const empId = (allocation as any).employeeId._id || (allocation as any).employeeId;
+        const empId = (allocation as any).resourceId._id || (allocation as any).resourceId;
         await this._recalculateUtilisation(empId, today);
       }
       console.log(`     Processed ${expiredCount} expired allocations.`);
