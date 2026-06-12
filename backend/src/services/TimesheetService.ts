@@ -143,12 +143,15 @@ class TimesheetService {
     const managerAllocations = allocations.filter(
       (a: any) => {
         const mgrId = a.managerId?._id || a.managerId;
-        return mgrId.toString() === managerId.toString();
+        return mgrId?.toString() === managerId.toString();
       }
     );
 
     const employeeIds = [...new Set(
-      managerAllocations.map((a: any) => (a.employeeId?._id || a.employeeId).toString())
+      managerAllocations.map((a: any) => {
+        const resId = a.resourceId?._id || a.resourceId;
+        return resId ? resId.toString() : null;
+      }).filter(id => id !== null)
     )];
 
     if (employeeIds.length === 0) {
