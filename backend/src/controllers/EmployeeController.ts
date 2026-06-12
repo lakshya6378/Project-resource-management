@@ -1,6 +1,5 @@
 import timesheetService from '../services/TimesheetService';
 import allocationService from '../services/AllocationService';
-import { employeeRepository } from '../repositories';
 import { sendSuccess } from '../utils/responseHelper';
 import { AppError } from '../middleware/errorHandler';
 

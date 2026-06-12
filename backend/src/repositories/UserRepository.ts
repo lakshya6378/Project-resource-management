@@ -8,8 +8,8 @@ import { User } from '../models';
  * This makes the business logic testable with mock repositories.
  */
 class UserRepository {
-  async findAll() {
-    return User.find().populate('roleId').select('-passwordHash').sort({ createdAt: -1 });
+  async findAll(filters: any = {}) {
+    return User.find(filters).populate('roleId').select('-passwordHash').sort({ createdAt: -1 });
   }
 
   async findById(id) {

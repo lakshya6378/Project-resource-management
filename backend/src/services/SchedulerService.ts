@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import {
-  employeeRepository,
+  userRepository,
   allocationRepository,
   timesheetRepository,
   systemConfigRepository,
@@ -99,9 +99,10 @@ class SchedulerService {
     let missedCount = 0;
     try {
       const lastWeekStart = getLastCompletedWeekStart();
-      const employees = await employeeRepository.findAll({ isActive: true });
+      const employees = await userRepository.findAll({ isActive: true });
 
       for (const employee of employees) {
+        if ((employee.roleId as any)?.name !== 'EMPLOYEE') continue;
         const empId = employee._id;
         const exists = await timesheetRepository.exists(empId, lastWeekStart);
 
@@ -185,9 +186,10 @@ class SchedulerService {
 
   async _sendTimesheetReminders() {
     try {
-      const employees = await employeeRepository.findAll({ isActive: true });
+      const employees = await userRepository.findAll({ isActive: true });
       let sentCount = 0;
       for (const employee of employees) {
+        if ((employee.roleId as any)?.name !== 'EMPLOYEE') continue;
         if ((employee as any)._id && (employee as any)._id.email) {
           emailService.sendTimesheetReminderEmail((employee as any)._id).catch(console.error);
           sentCount++;
@@ -205,9 +207,9 @@ class SchedulerService {
     );
     const totalUtil = activeAllocations.reduce((sum: number, a: any) => sum + a.utilisation, 0);
     const status = totalUtil > 0 ? 'ALLOCATED' : 'BENCH';
-    await employeeRepository.update(employeeId, {
-      currentUtilisation: totalUtil,
-      status,
+    await userRepository.update(employeeId, {
+      'resourceData.currentUtilisation': totalUtil,
+      'resourceData.status': status,
     });
   }
 }

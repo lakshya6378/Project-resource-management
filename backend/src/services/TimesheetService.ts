@@ -1,7 +1,7 @@
 import {
   timesheetRepository,
   allocationRepository,
-  employeeRepository,
+  userRepository,
   systemConfigRepository,
 } from '../repositories';
 import { AppError } from '../middleware/errorHandler';
@@ -52,9 +52,9 @@ class TimesheetService {
     }
 
     // Validate employee exists
-    const employee = await employeeRepository.findById(employeeId);
-    if (!employee) {
-      throw new AppError('Employee not found', 404);
+    const employee = await userRepository.findById(employeeId);
+    if (!employee || (employee.roleId as any)?.name !== 'EMPLOYEE') {
+      throw new AppError('Employee not found or invalid role', 404);
     }
 
     // Get system config for maxWeeklyHours
