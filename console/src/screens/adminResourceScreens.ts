@@ -11,7 +11,7 @@ const resourceMenu = async () => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select an action:',
       choices: [
@@ -87,7 +87,7 @@ const listEmployeesScreen = async (currentStatusFilter: string = '', currentDept
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [
@@ -101,7 +101,7 @@ const listEmployeesScreen = async (currentStatusFilter: string = '', currentDept
     if (action === 'filter_status') {
       const { filterStatus } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'filterStatus',
           message: 'Select status:',
           choices: [
@@ -144,7 +144,7 @@ const assignManagerScreen = async () => {
 
     const { managerId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'managerId',
         message: 'Select manager:',
         choices: managers.map(m => ({ name: `${m.fullName} (${m.username})`, value: m._id })),
@@ -153,7 +153,7 @@ const assignManagerScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -254,7 +254,7 @@ const updateEmployeeScreen = async () => {
 
     const answers = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'departmentId',
         message: `Department (Currently: ${employee.departmentId?.name || 'N/A'}):`,
         choices: depts.map(d => ({ name: d.name, value: d._id })),
@@ -266,7 +266,7 @@ const updateEmployeeScreen = async () => {
 
     const desigAnswer = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'designationId',
         message: `Designation (Currently: ${employee.designationId?.title || 'N/A'}):`,
         choices: desigs.map(d => ({ name: d.title, value: d._id })),
@@ -373,7 +373,7 @@ const skillsMenu = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Action:',
         choices: [
@@ -399,13 +399,13 @@ const skillsMenu = async () => {
 
       const skill = await inquirer.prompt([
         { 
-          type: 'list', 
+          type: 'list', loop: false, 
           name: 'skillId', 
           message: 'Select skill:', 
           choices: globalSkills.map(s => ({ name: s.name, value: s._id })) 
         },
         { 
-          type: 'list', 
+          type: 'list', loop: false, 
           name: 'proficiency', 
           message: 'Proficiency:', 
           choices: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] 
@@ -422,12 +422,12 @@ const skillsMenu = async () => {
     if (action === 'update' && skills.length > 0) {
       const { skillId } = await inquirer.prompt([
         {
-          type: 'list', name: 'skillId', message: 'Select skill:',
+          type: 'list', loop: false, name: 'skillId', message: 'Select skill:',
           choices: skills.map((s) => ({ name: `${s.skillId?.name} (${s.proficiency})`, value: s.skillId?._id })),
         },
       ]);
       const { proficiency } = await inquirer.prompt([
-        { type: 'list', name: 'proficiency', message: 'New proficiency:', choices: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] },
+        { type: 'list', loop: false, name: 'proficiency', message: 'New proficiency:', choices: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] },
       ]);
       try {
         await api.updateSkillProficiency(empId, skillId, proficiency);
@@ -440,7 +440,7 @@ const skillsMenu = async () => {
     if (action === 'remove' && skills.length > 0) {
       const { skillId } = await inquirer.prompt([
         {
-          type: 'list', name: 'skillId', message: 'Select skill to remove:',
+          type: 'list', loop: false, name: 'skillId', message: 'Select skill to remove:',
           choices: skills.map((s) => ({ name: s.skillId?.name, value: s.skillId?._id })),
         },
       ]);
@@ -474,7 +474,7 @@ const selectEmployee = async (message) => {
 
   const { empId } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'empId',
       message,
       choices: employees.map((e) => ({

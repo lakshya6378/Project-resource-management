@@ -15,7 +15,7 @@ const managerMainMenu = async (user) => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'What would you like to do?',
       choices: [
@@ -90,7 +90,7 @@ const resourceDashboardScreen = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [
@@ -210,7 +210,7 @@ const myProjectsScreen = async () => {
 
       const { subAction } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'subAction',
           message: 'Options:',
           choices: [
@@ -241,7 +241,7 @@ const myProjectsScreen = async () => {
 const managerTimesheetsMenu = async () => {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Timesheets:',
       choices: [
@@ -259,7 +259,7 @@ const managerTimesheetsMenu = async () => {
 const aiAssistantMenu = async () => {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'AI Assistant:',
       choices: [
@@ -339,7 +339,7 @@ const allocationsMenu = async () => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select action:',
       choices: [
@@ -544,7 +544,7 @@ const suggestTeamScreen = async () => {
         }
 
         const { confirm } = await inquirer.prompt([{
-           type: 'list',
+           type: 'list', loop: false,
            name: 'confirm',
            message: 'Action:',
            choices: [
@@ -646,7 +646,7 @@ const endAllocationScreen = async () => {
 
     const { allocId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'allocId',
         message: 'Select allocation to end:',
         choices: allocations.map((a) => ({
@@ -723,7 +723,7 @@ const reviewAccessScreen = async () => {
 
     const { timesheetId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'timesheetId',
         message: 'Select a pending access request to review:',
         choices: pendingRequests.map((req) => ({
@@ -769,7 +769,7 @@ const selectMyProject = async (message) => {
 
     const { projectId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'projectId',
         message,
         choices: projects.map((p) => ({
@@ -798,7 +798,7 @@ const selectEmployee = async (message) => {
 
     const { empId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'empId',
         message,
         choices: employees.map((e) => ({

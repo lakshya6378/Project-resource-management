@@ -78,7 +78,7 @@ const changePasswordScreen = async (isForced = false) => {
   if (!isForced) {
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Do you want to proceed?',
         choices: [

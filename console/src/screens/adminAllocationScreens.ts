@@ -42,7 +42,7 @@ const listAllAllocationsScreen = async (filterText: string = '') => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [

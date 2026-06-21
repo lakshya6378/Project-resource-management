@@ -11,7 +11,7 @@ const userMenu = async () => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select an action:',
       choices: [
@@ -72,7 +72,7 @@ const listUsersScreen = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [
@@ -126,7 +126,7 @@ const createUserScreen = async () => {
         validate: (val) => val.length >= 3 || 'Min 3 characters',
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'roleId',
         message: 'Select user role:',
         choices: roles.map(r => ({ name: r.name, value: r._id })),
@@ -145,7 +145,7 @@ const createUserScreen = async () => {
         },
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'departmentId',
         message: 'Department:',
         choices: depts.map(d => ({ name: d.name, value: d._id })),
@@ -163,7 +163,7 @@ const createUserScreen = async () => {
 
     const { designationId } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'designationId',
         message: 'Designation:',
         choices: desigs.map(d => ({ name: d.title, value: d._id })),
@@ -172,7 +172,7 @@ const createUserScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -318,7 +318,7 @@ const resetPasswordScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [

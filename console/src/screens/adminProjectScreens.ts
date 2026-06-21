@@ -25,7 +25,7 @@ const projectMenu = async (perms: string[] = []) => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select an action:',
       choices,
@@ -85,7 +85,7 @@ const listProjectsScreen = async (currentStatusFilter: string = '') => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [
@@ -98,7 +98,7 @@ const listProjectsScreen = async (currentStatusFilter: string = '') => {
     if (action === 'filter') {
       const { filterStatus } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'filterStatus',
           message: 'Filter by status:',
           choices: [
@@ -142,13 +142,13 @@ const createProjectScreen = async () => {
         message: 'Description (optional):',
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'managerId',
         message: 'Select Project Manager:',
         choices: managers.map(m => ({ name: m.fullName, value: m._id })),
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'status',
         message: 'Project Status:',
         choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
@@ -184,7 +184,7 @@ const createProjectScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -276,7 +276,7 @@ const updateProjectScreen = async () => {
         default: project.description || '',
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'managerId',
         message: `Manager (Currently: ${project.managerId?.fullName || 'none'}):`,
         choices: [
@@ -285,7 +285,7 @@ const updateProjectScreen = async () => {
         ],
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'status',
         message: `Status (${project.status}):`,
         choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
@@ -301,7 +301,7 @@ const updateProjectScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -352,7 +352,7 @@ const milestonesMenu = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Action:',
         choices: [
@@ -392,7 +392,7 @@ const milestonesMenu = async () => {
     if (action === 'update' && p.milestones.length > 0) {
       const { milestoneId } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'milestoneId',
           message: 'Select milestone:',
           choices: p.milestones.map((m) => ({
@@ -403,7 +403,7 @@ const milestonesMenu = async () => {
       ]);
       const { status } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'status',
           message: 'New status:',
           choices: ['NOT_STARTED', 'IN_PROGRESS', 'DONE'],
@@ -436,7 +436,7 @@ const selectProject = async (message) => {
 
   const { projId } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'projId',
       message,
       choices: projects.map((p) => ({

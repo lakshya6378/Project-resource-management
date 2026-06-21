@@ -21,6 +21,7 @@ const unifiedMainMenu = async (user) => {
   ui.header('Main Menu', `Welcome ${user.fullName} ${dateStr}`);
 
   const perms = user.permissions || [];
+
   const choices: any[] = [];
 
   // ─── ADMIN MENU ITEMS ───
@@ -71,7 +72,7 @@ const unifiedMainMenu = async (user) => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'What would you like to do?',
       choices,
@@ -160,7 +161,7 @@ const main = async () => {
 
   const { initAction } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'initAction',
       message: 'Welcome to PRM Tool',
       choices: [
