@@ -21,6 +21,7 @@ import Project from './Project';
 import Allocation from './Allocation';
 import Timesheet from './Timesheet';
 import SystemConfig from './SystemConfig';
+import BlacklistedToken from './BlacklistedToken';
 
 export {
   User,
@@ -38,4 +39,5 @@ export {
   Allocation,
   Timesheet,
   SystemConfig,
+  BlacklistedToken,
 };

@@ -101,7 +101,7 @@ class AuthService {
    * @param {string} token - JWT token to invalidate
    */
   async logout(token) {
-    blacklistToken(token);
+    await blacklistToken(token);
     return { message: 'Logged out successfully' };
   }
 }

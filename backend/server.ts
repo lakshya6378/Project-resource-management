@@ -3,6 +3,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
 
 import env from './src/config/env';
 import db from './src/config/db';
@@ -23,9 +25,27 @@ const app = express();
 // ─── Global Middleware ───────────────────────────────────────
 app.use(helmet());                         // Security headers
 app.use(morgan('dev'));                     // Request logging
-app.use(cors());                           // CORS — configure origins for production
+
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || '*',
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));                // Dynamic CORS
+
 app.use(express.json({ limit: '10mb' }));  // JSON body parser
 app.use(express.urlencoded({ extended: true }));
+
+// Data Sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Rate Limiting for Auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true, 
+  legacyHeaders: false,
+});
 
 // ─── Swagger UI ──────────────────────────────────────────────
 app.use(
@@ -58,7 +78,7 @@ app.get('/api/health', (req, res) => {
 
 // ─── API Routes ──────────────────────────────────────────────
 // Public routes (no auth required)
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 
 // Protected routes
 app.use('/api/admin', verifyToken, requireRole('ADMIN'), checkForcePasswordChange, adminRoutes);

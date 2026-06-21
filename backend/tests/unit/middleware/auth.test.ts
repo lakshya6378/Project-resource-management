@@ -10,8 +10,16 @@ import {
 } from '../../../src/middleware/auth';
 import env from '../../../src/config/env';
 import { User, RolePermission } from '../../../src/models';
+import BlacklistedToken from '../../../src/models/BlacklistedToken';
 
 jest.mock('jsonwebtoken');
+jest.mock('../../../src/models/BlacklistedToken', () => ({
+  __esModule: true,
+  default: {
+    exists: jest.fn(),
+    create: jest.fn(),
+  }
+}));
 jest.mock('../../../src/models', () => ({
   User: {
     findById: jest.fn(),
@@ -51,10 +59,15 @@ describe('Auth Middleware', () => {
       expect(token).toBe('mock_jwt_token');
     });
 
-    it('should add to blacklist and check if blacklisted', () => {
-      expect(isTokenBlacklisted('some_token')).toBe(false);
-      blacklistToken('some_token');
-      expect(isTokenBlacklisted('some_token')).toBe(true);
+    it('should add to blacklist and check if blacklisted', async () => {
+      (BlacklistedToken.exists as jest.Mock).mockResolvedValue(null);
+      expect(await isTokenBlacklisted('some_token')).toBe(false);
+
+      (BlacklistedToken.create as jest.Mock).mockResolvedValue({});
+      await blacklistToken('some_token');
+      
+      (BlacklistedToken.exists as jest.Mock).mockResolvedValue({ _id: '123' });
+      expect(await isTokenBlacklisted('some_token')).toBe(true);
     });
   });
 
@@ -67,7 +80,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should return 401 if token is blacklisted', async () => {
-      blacklistToken('blacklisted_token');
+      (BlacklistedToken.exists as jest.Mock).mockResolvedValue({ _id: '123' });
       mockReq.headers.authorization = 'Bearer blacklisted_token';
 
       await verifyToken(mockReq, mockRes, mockNext);
@@ -77,6 +90,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should successfully verify a token and populate req.user', async () => {
+      (BlacklistedToken.exists as jest.Mock).mockResolvedValue(null);
       mockReq.headers.authorization = 'Bearer valid_token';
       (jwt.verify as jest.Mock).mockReturnValue({ id: 'user_id' });
       
@@ -118,6 +132,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should return 401 if user account not found after decoding', async () => {
+      (BlacklistedToken.exists as jest.Mock).mockResolvedValue(null);
       mockReq.headers.authorization = 'Bearer valid_token';
       (jwt.verify as jest.Mock).mockReturnValue({ id: 'user_id' });
       
