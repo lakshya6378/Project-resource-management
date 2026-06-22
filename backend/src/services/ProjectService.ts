@@ -206,8 +206,10 @@ class ProjectService {
 
     // Validate due date is within project range
     const dueDate = new Date(milestone.dueDate);
-    if (dueDate < project.startDate || dueDate > project.endDate) {
-      throw new AppError('Milestone due date must be within project date range', 400);
+    if (project.startDate && project.endDate) {
+      if (dueDate < project.startDate || dueDate > project.endDate) {
+        throw new AppError('Milestone due date must be within project date range', 400);
+      }
     }
 
     // Check for duplicate milestone title
@@ -218,10 +220,21 @@ class ProjectService {
       throw new AppError(`Milestone '${milestone.title}' already exists`, 409);
     }
 
+    const currentStoryPoints = project.milestones.reduce((sum: number, m: any) => sum + (m.storyPoints || 0), 0);
+    const newStoryPoints = milestone.storyPoints || 0;
+    const projectTotalPoints = project.totalStoryPoints || 0;
+
+    if (projectTotalPoints > 0 && currentStoryPoints + newStoryPoints > projectTotalPoints) {
+      throw new AppError(`Total milestone story points (${currentStoryPoints + newStoryPoints}) cannot exceed project's total story points (${projectTotalPoints})`, 400);
+    } else if (projectTotalPoints === 0 && newStoryPoints > 0) {
+      throw new AppError(`Cannot add story points to milestone because project's total story points is 0. Please update the project first.`, 400);
+    }
+
     const updated = await projectRepository.addMilestone(projectId, {
       title: milestone.title,
       dueDate,
       status: MILESTONE_STATUS.NOT_STARTED,
+      storyPoints: newStoryPoints,
     });
 
     return updated.milestones;

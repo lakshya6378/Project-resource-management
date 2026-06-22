@@ -122,7 +122,7 @@ const createProjectScreen = async () => {
 
   try {
     const usersResult = await api.listUsers();
-    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER');
 
     if (managers.length === 0) {
       ui.error('No managers found! Please create a user with MANAGER role first.');
@@ -162,19 +162,26 @@ const createProjectScreen = async () => {
       {
         type: 'input',
         name: 'startDate',
-        message: 'Start date (DD-MM-YYYY):',
-        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
+        message: 'Start date (DD-MM-YYYY) (optional for PLANNED):',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
       },
       {
         type: 'input',
         name: 'endDate',
-        message: 'End date (DD-MM-YYYY):',
-        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
+        message: 'End date (DD-MM-YYYY) (optional for PLANNED):',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
       },
     ]);
 
     // parse dates DD-MM-YYYY
     const parseDate = (dStr) => {
+      if (!dStr) return undefined;
       const [dd, mm, yyyy] = dStr.split('-');
       return new Date(`${yyyy}-${mm}-${dd}`);
     };
@@ -260,7 +267,7 @@ const updateProjectScreen = async () => {
     }
 
     const usersResult = await api.listUsers();
-    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER');
 
     const answers = await inquirer.prompt([
       {
@@ -297,7 +304,34 @@ const updateProjectScreen = async () => {
         message: `Total Story Points (${project.totalStoryPoints || 0}):`,
         default: project.totalStoryPoints || 0,
       },
+      {
+        type: 'input',
+        name: 'startDate',
+        message: `Start date (DD-MM-YYYY) (optional for PLANNED):`,
+        default: project.startDate ? new Date(project.startDate).toLocaleDateString('en-GB').replace(/\//g, '-') : '',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
+      },
+      {
+        type: 'input',
+        name: 'endDate',
+        message: `End date (DD-MM-YYYY) (optional for PLANNED):`,
+        default: project.endDate ? new Date(project.endDate).toLocaleDateString('en-GB').replace(/\//g, '-') : '',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
+      },
     ]);
+
+    // parse dates DD-MM-YYYY
+    const parseDate = (dStr) => {
+      if (!dStr) return undefined;
+      const [dd, mm, yyyy] = dStr.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    };
 
     const { confirmAction } = await inquirer.prompt([
       {
@@ -315,8 +349,16 @@ const updateProjectScreen = async () => {
 
     if (!answers.managerId) delete answers.managerId;
 
-    await api.updateProject(project._id, answers);
-    ui.success('Project updated');
+    const payload = {
+      ...answers,
+      startDate: parseDate(answers.startDate),
+      endDate: parseDate(answers.endDate),
+    };
+
+    if (confirmAction === 'save') {
+      await api.updateProject(projectId, payload);
+      ui.success('Project updated successfully.');
+    }
   } catch (err) {
     ui.error(err.message);
   }
@@ -340,11 +382,12 @@ const milestonesMenu = async () => {
         p.milestones.map((m) => ({
           title: m.title,
           dueDate: new Date(m.dueDate).toLocaleDateString(),
+          storyPoints: m.storyPoints || 0,
           status: m.status,
           id: m._id,
         })),
-        ['title', 'dueDate', 'status', 'id'],
-        { title: 'Title', dueDate: 'Due', status: 'Status', id: 'ID' }
+        ['title', 'dueDate', 'storyPoints', 'status', 'id'],
+        { title: 'Title', dueDate: 'Due', storyPoints: 'Story Points', status: 'Status', id: 'ID' }
       );
     } else {
       ui.info('No milestones yet');
@@ -379,6 +422,12 @@ const milestonesMenu = async () => {
           name: 'dueDate',
           message: 'Due date (YYYY-MM-DD):',
           validate: (v) => !isNaN(Date.parse(v)) || 'Invalid date',
+        },
+        {
+          type: 'number',
+          name: 'storyPoints',
+          message: 'Story Points (optional, default 0):',
+          default: 0,
         },
       ]);
       try {
