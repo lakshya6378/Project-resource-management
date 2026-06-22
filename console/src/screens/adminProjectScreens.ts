@@ -25,7 +25,7 @@ const projectMenu = async (perms: string[] = []) => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select an action:',
       choices,
@@ -85,7 +85,7 @@ const listProjectsScreen = async (currentStatusFilter: string = '') => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [
@@ -98,7 +98,7 @@ const listProjectsScreen = async (currentStatusFilter: string = '') => {
     if (action === 'filter') {
       const { filterStatus } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'filterStatus',
           message: 'Filter by status:',
           choices: [
@@ -122,7 +122,7 @@ const createProjectScreen = async () => {
 
   try {
     const usersResult = await api.listUsers();
-    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER');
 
     if (managers.length === 0) {
       ui.error('No managers found! Please create a user with MANAGER role first.');
@@ -142,13 +142,13 @@ const createProjectScreen = async () => {
         message: 'Description (optional):',
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'managerId',
         message: 'Select Project Manager:',
         choices: managers.map(m => ({ name: m.fullName, value: m._id })),
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'status',
         message: 'Project Status:',
         choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
@@ -162,19 +162,26 @@ const createProjectScreen = async () => {
       {
         type: 'input',
         name: 'startDate',
-        message: 'Start date (DD-MM-YYYY):',
-        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
+        message: 'Start date (DD-MM-YYYY) (optional for PLANNED):',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
       },
       {
         type: 'input',
         name: 'endDate',
-        message: 'End date (DD-MM-YYYY):',
-        validate: (v) => /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY',
+        message: 'End date (DD-MM-YYYY) (optional for PLANNED):',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
       },
     ]);
 
     // parse dates DD-MM-YYYY
     const parseDate = (dStr) => {
+      if (!dStr) return undefined;
       const [dd, mm, yyyy] = dStr.split('-');
       return new Date(`${yyyy}-${mm}-${dd}`);
     };
@@ -184,7 +191,7 @@ const createProjectScreen = async () => {
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -260,7 +267,7 @@ const updateProjectScreen = async () => {
     }
 
     const usersResult = await api.listUsers();
-    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER' || u.roleId?.name === 'ADMIN');
+    const managers = usersResult.data.users.filter(u => u.roleId?.name === 'MANAGER');
 
     const answers = await inquirer.prompt([
       {
@@ -276,7 +283,7 @@ const updateProjectScreen = async () => {
         default: project.description || '',
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'managerId',
         message: `Manager (Currently: ${project.managerId?.fullName || 'none'}):`,
         choices: [
@@ -285,7 +292,7 @@ const updateProjectScreen = async () => {
         ],
       },
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'status',
         message: `Status (${project.status}):`,
         choices: ['PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED'],
@@ -297,11 +304,38 @@ const updateProjectScreen = async () => {
         message: `Total Story Points (${project.totalStoryPoints || 0}):`,
         default: project.totalStoryPoints || 0,
       },
+      {
+        type: 'input',
+        name: 'startDate',
+        message: `Start date (DD-MM-YYYY) (optional for PLANNED):`,
+        default: project.startDate ? new Date(project.startDate).toLocaleDateString('en-GB').replace(/\//g, '-') : '',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
+      },
+      {
+        type: 'input',
+        name: 'endDate',
+        message: `End date (DD-MM-YYYY) (optional for PLANNED):`,
+        default: project.endDate ? new Date(project.endDate).toLocaleDateString('en-GB').replace(/\//g, '-') : '',
+        validate: (v, answers) => {
+          if (!v && answers.status === 'PLANNED') return true;
+          return /^\d{2}-\d{2}-\d{4}$/.test(v) || 'Must be DD-MM-YYYY';
+        }
+      },
     ]);
+
+    // parse dates DD-MM-YYYY
+    const parseDate = (dStr) => {
+      if (!dStr) return undefined;
+      const [dd, mm, yyyy] = dStr.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    };
 
     const { confirmAction } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'confirmAction',
         message: 'Options:',
         choices: [
@@ -315,8 +349,16 @@ const updateProjectScreen = async () => {
 
     if (!answers.managerId) delete answers.managerId;
 
-    await api.updateProject(project._id, answers);
-    ui.success('Project updated');
+    const payload = {
+      ...answers,
+      startDate: parseDate(answers.startDate),
+      endDate: parseDate(answers.endDate),
+    };
+
+    if (confirmAction === 'save') {
+      await api.updateProject(projectId, payload);
+      ui.success('Project updated successfully.');
+    }
   } catch (err) {
     ui.error(err.message);
   }
@@ -340,11 +382,12 @@ const milestonesMenu = async () => {
         p.milestones.map((m) => ({
           title: m.title,
           dueDate: new Date(m.dueDate).toLocaleDateString(),
+          storyPoints: m.storyPoints || 0,
           status: m.status,
           id: m._id,
         })),
-        ['title', 'dueDate', 'status', 'id'],
-        { title: 'Title', dueDate: 'Due', status: 'Status', id: 'ID' }
+        ['title', 'dueDate', 'storyPoints', 'status', 'id'],
+        { title: 'Title', dueDate: 'Due', storyPoints: 'Story Points', status: 'Status', id: 'ID' }
       );
     } else {
       ui.info('No milestones yet');
@@ -352,7 +395,7 @@ const milestonesMenu = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Action:',
         choices: [
@@ -380,6 +423,12 @@ const milestonesMenu = async () => {
           message: 'Due date (YYYY-MM-DD):',
           validate: (v) => !isNaN(Date.parse(v)) || 'Invalid date',
         },
+        {
+          type: 'number',
+          name: 'storyPoints',
+          message: 'Story Points (optional, default 0):',
+          default: 0,
+        },
       ]);
       try {
         await api.addMilestone(project._id, milestone);
@@ -392,7 +441,7 @@ const milestonesMenu = async () => {
     if (action === 'update' && p.milestones.length > 0) {
       const { milestoneId } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'milestoneId',
           message: 'Select milestone:',
           choices: p.milestones.map((m) => ({
@@ -403,7 +452,7 @@ const milestonesMenu = async () => {
       ]);
       const { status } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'status',
           message: 'New status:',
           choices: ['NOT_STARTED', 'IN_PROGRESS', 'DONE'],
@@ -436,7 +485,7 @@ const selectProject = async (message) => {
 
   const { projId } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'projId',
       message,
       choices: projects.map((p) => ({

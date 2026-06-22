@@ -20,6 +20,14 @@ jest.mock('../../src/models', () => ({
   }
 }));
 
+jest.mock('../../src/models/BlacklistedToken', () => ({
+  __esModule: true,
+  default: {
+    exists: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockResolvedValue({}),
+  }
+}));
+
 describe('Admin Routes API', () => {
   let token: string;
 

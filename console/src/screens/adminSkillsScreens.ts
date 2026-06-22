@@ -7,7 +7,7 @@ const globalSkillsMenu = async () => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'Select an action:',
       choices: [
@@ -105,7 +105,7 @@ const createSkillScreen = async () => {
 
     const { name, categoryId } = await inquirer.prompt([
       { type: 'input', name: 'name', message: 'Skill Name:', validate: v => v.length > 0 || 'Required' },
-      { type: 'list', name: 'categoryId', message: 'Select Category:', choices: categories.map(c => ({ name: c.name, value: c._id })) }
+      { type: 'list', loop: false, name: 'categoryId', message: 'Select Category:', choices: categories.map(c => ({ name: c.name, value: c._id })) }
     ]);
 
     await api.createGlobalSkill({ name, categoryId });

@@ -11,14 +11,23 @@ jest.mock('../../src/repositories', () => ({
 }));
 
 jest.mock('../../src/models', () => ({
+  User: {
+    findById: jest.fn(),
+  },
   RolePermission: {
     find: jest.fn().mockReturnThis(),
     populate: jest.fn().mockResolvedValue([]),
   },
-  User: {
-    findById: jest.fn(),
-  },
 }));
+
+jest.mock('../../src/models/BlacklistedToken', () => ({
+  __esModule: true,
+  default: {
+    exists: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockResolvedValue({}),
+  }
+}));
+
 
 jest.mock('../../src/middleware/auth', () => {
   const actualAuth = jest.requireActual('../../src/middleware/auth');

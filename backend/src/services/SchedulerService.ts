@@ -125,24 +125,24 @@ class SchedulerService {
         }
 
         const employee = ts.resourceId;
-        const activeAllocations = await allocationRepository.findActiveByEmployeeOnDate(employee._id, today);
+        const activeAllocations = await allocationRepository.findActiveByEmployeeOnDate((employee as any)._id, today);
         let reportingManager = null;
         for (const alloc of activeAllocations) {
           const project = await projectRepository.findById((alloc as any).projectId._id || (alloc as any).projectId);
           if (project && project.managerId) {
             reportingManager = project.managerId;
-            break;
+            break; // Find first manager
           }
         }
 
         if (dayOfWeek === 1 && (ts.reminderCount as number) < 1 && ts.status === 'MISSED') {
-          // Monday: Reminder 1
+          // Monday: Reminder 1 (Next working day of deadline)
           await emailService.sendTimesheetReminderEmail(employee, 1).catch(console.error);
           await timesheetRepository.update(ts._id, { reminderCount: 1, lastReminderSentAt: new Date() });
           processCount++;
         }
         else if (dayOfWeek === 2 && (ts.reminderCount as number) < 2 && ts.status === 'MISSED') {
-          // Tuesday: Reminder 2
+          // Tuesday: Reminder 2 (Day after day)
           await emailService.sendTimesheetReminderEmail(employee, 2).catch(console.error);
           await timesheetRepository.update(ts._id, { reminderCount: 2, lastReminderSentAt: new Date() });
           processCount++;
@@ -252,12 +252,13 @@ class SchedulerService {
       let sentCount = 0;
       for (const employee of employees) {
         if ((employee.roleId as any)?.name !== 'EMPLOYEE') continue;
-        if ((employee as any)._id && (employee as any)._id.email) {
-          emailService.sendTimesheetReminderEmail((employee as any), 0).catch(console.error);
+        if (employee.email) {
+          // 2 days warning (Friday before the Sunday deadline)
+          await emailService.sendTimesheetReminderEmail(employee, 0).catch(console.error);
           sentCount++;
         }
       }
-      console.log(`  -> Sent ${sentCount} timesheet reminders.`);
+      console.log(`  -> Sent ${sentCount} 2-day warning timesheet reminders.`);
     } catch (err) {
       console.error('  -> Error sending timesheet reminders:', err);
     }

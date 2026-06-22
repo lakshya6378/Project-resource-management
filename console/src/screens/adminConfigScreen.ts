@@ -25,7 +25,7 @@ const configMenu = async () => {
 
       const { action } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'action',
           message: 'Select an option:',
           choices: [
@@ -48,7 +48,7 @@ const configMenu = async () => {
         const { llmApiKey } = await inquirer.prompt([{ type: 'input', name: 'llmApiKey', message: 'Enter new LLM API Key:' }]);
         if (llmApiKey) updateData.llmApiKey = llmApiKey;
       } else if (action === 'provider') {
-        const { llmProvider } = await inquirer.prompt([{ type: 'list', name: 'llmProvider', message: 'Select LLM Provider:', choices: ['GEMINI', 'GROQ', 'LOCAL_GEMMA'], default: config.llmProvider }]);
+        const { llmProvider } = await inquirer.prompt([{ type: 'list', loop: false, name: 'llmProvider', message: 'Select LLM Provider:', choices: ['GEMINI', 'GROQ', 'LOCAL_GEMMA'], default: config.llmProvider }]);
         let llmApiKey = config.llmApiKey;
         
         const ans = await inquirer.prompt([{ type: 'input', name: 'llmApiKey', message: `Enter ${llmProvider} API Key (leave empty to keep current):` }]);

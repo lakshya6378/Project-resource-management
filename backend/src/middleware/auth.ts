@@ -1,24 +1,14 @@
 import jwt from 'jsonwebtoken';
 import env from '../config/env';
 import { User } from '../models';
-
-/**
- * Token Blacklist — In-memory set for invalidated tokens.
- *
- * When a user logs out, their token is added here.
- * Subsequent requests with that token are rejected.
- *
- * Note: In production, use Redis for persistence across server restarts.
- * This in-memory approach works for development and single-instance deployments.
- */
-const tokenBlacklist = new Set();
+import BlacklistedToken from '../models/BlacklistedToken';
 
 /**
  * Add a token to the blacklist (called on logout).
  * @param {string} token - JWT token to invalidate
  */
-const blacklistToken = (token) => {
-  tokenBlacklist.add(token);
+const blacklistToken = async (token) => {
+  await BlacklistedToken.create({ token });
 };
 
 /**
@@ -26,8 +16,9 @@ const blacklistToken = (token) => {
  * @param {string} token - JWT token to check
  * @returns {boolean}
  */
-const isTokenBlacklisted = (token) => {
-  return tokenBlacklist.has(token);
+const isTokenBlacklisted = async (token) => {
+  const exists = await BlacklistedToken.exists({ token });
+  return !!exists;
 };
 
 /**
@@ -52,7 +43,7 @@ const verifyToken = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     // Check if token has been blacklisted (logged out)
-    if (isTokenBlacklisted(token)) {
+    if (await isTokenBlacklisted(token)) {
       return res.status(401).json({
         success: false,
         message: 'Token has been invalidated. Please log in again.',

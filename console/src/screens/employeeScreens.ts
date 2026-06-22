@@ -14,7 +14,7 @@ const employeeMainMenu = async (user) => {
 
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
+      type: 'list', loop: false,
       name: 'action',
       message: 'What would you like to do?',
       choices: [
@@ -109,7 +109,7 @@ const submitTimesheetScreen = async () => {
     while (more) {
       const { projectId } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'list', loop: false,
           name: 'projectId',
           message: 'Select project:',
           choices: activeAllocations.map((a) => ({
@@ -181,7 +181,7 @@ const timesheetHistoryScreen = async () => {
 
     const { action } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'list', loop: false,
         name: 'action',
         message: 'Options:',
         choices: [

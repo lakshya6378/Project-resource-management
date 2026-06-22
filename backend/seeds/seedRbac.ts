@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
 import {
   User,
   Role,
@@ -9,13 +8,8 @@ import {
   Department,
   Designation,
   EmployeeProfile,
-  ResourceProfile,
   SkillCategory,
   Skill,
-  EmployeeSkill,
-  Project,
-  Allocation,
-  Timesheet,
 } from '../src/models';
 
 dotenv.config();
@@ -25,15 +19,11 @@ const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prm';
 const seedDatabase = async () => {
   try {
     await mongoose.connect(MONGO_URI);
-    console.log('Connected to MongoDB. Wiping database...');
-
-    // Drop all collections
-    await mongoose.connection.db.dropDatabase();
-    console.log('Database wiped.');
+    console.log('Connected to MongoDB. Seeding database...');
 
     // 1. Create Permissions
-    console.log('Creating Permissions...');
-    const permissions = await Permission.insertMany([
+    console.log('Checking Permissions...');
+    const permissionData = [
       { code: 'MANAGE_USERS', description: 'Create, update, and deactivate users' },
       { code: 'MANAGE_SYSTEM', description: 'Modify system config and trigger scheduler' },
       { code: 'MANAGE_PROJECTS_ALL', description: 'Create and update any project' },
@@ -45,132 +35,115 @@ const seedDatabase = async () => {
       { code: 'MANAGE_SKILLS', description: 'Manage global skill categories and skills' },
       { code: 'VIEW_PROJECTS', description: 'View projects' },
       { code: 'REVIEW_TIMESHEETS', description: 'Review team timesheets' },
-    ]);
+    ];
 
+    for (const p of permissionData) {
+      const exists = await Permission.findOne({ code: p.code });
+      if (!exists) {
+        await Permission.create(p);
+      }
+    }
+    const permissions = await Permission.find();
     const getPerm = (code: string) => permissions.find((p) => p.code === code)!._id;
 
     // 2. Create Roles
-    console.log('Creating Roles...');
-    const adminRole = await Role.create({ name: 'ADMIN', description: 'Full system config, Users, Skills, Projects' });
-    const managerRole = await Role.create({ name: 'MANAGER', description: 'Manage Team Allocations, View Projects' });
-    const employeeRole = await Role.create({ name: 'EMPLOYEE', description: 'View own allocations, Submit Timesheet' });
+    console.log('Checking Roles...');
+    const roleData = [
+      { name: 'ADMIN', description: 'Full system config, Users, Skills, Projects' },
+      { name: 'MANAGER', description: 'Manage Team Allocations, View Projects' },
+      { name: 'EMPLOYEE', description: 'View own allocations, Submit Timesheet' }
+    ];
+
+    for (const r of roleData) {
+      const exists = await Role.findOne({ name: r.name });
+      if (!exists) {
+        await Role.create(r);
+      }
+    }
+    
+    const adminRole = await Role.findOne({ name: 'ADMIN' });
+    const managerRole = await Role.findOne({ name: 'MANAGER' });
+    const employeeRole = await Role.findOne({ name: 'EMPLOYEE' });
 
     // 3. Map Permissions to Roles
-    console.log('Mapping RolePermissions...');
+    console.log('Checking RolePermissions...');
     const rolePerms = [
       // Admin gets everything except submit timesheet
-      { roleId: adminRole._id, permissionId: getPerm('MANAGE_USERS') },
-      { roleId: adminRole._id, permissionId: getPerm('MANAGE_SYSTEM') },
-      { roleId: adminRole._id, permissionId: getPerm('MANAGE_PROJECTS_ALL') },
-      { roleId: adminRole._id, permissionId: getPerm('MANAGE_EMPLOYEES') },
-      { roleId: adminRole._id, permissionId: getPerm('VIEW_ALLOCATIONS_ALL') },
-      { roleId: adminRole._id, permissionId: getPerm('MANAGE_SKILLS') },
+      { roleId: adminRole!._id, permissionId: getPerm('MANAGE_USERS') },
+      { roleId: adminRole!._id, permissionId: getPerm('MANAGE_SYSTEM') },
+      { roleId: adminRole!._id, permissionId: getPerm('MANAGE_PROJECTS_ALL') },
+      { roleId: adminRole!._id, permissionId: getPerm('MANAGE_EMPLOYEES') },
+      { roleId: adminRole!._id, permissionId: getPerm('VIEW_ALLOCATIONS_ALL') },
+      { roleId: adminRole!._id, permissionId: getPerm('MANAGE_SKILLS') },
       
       // Manager
-      { roleId: managerRole._id, permissionId: getPerm('MANAGE_TEAM_ALLOCATIONS') },
-      { roleId: managerRole._id, permissionId: getPerm('VIEW_TEAM_DASHBOARD') },
-      { roleId: managerRole._id, permissionId: getPerm('SUBMIT_TIMESHEET') },
-      { roleId: managerRole._id, permissionId: getPerm('VIEW_PROJECTS') },
-      { roleId: managerRole._id, permissionId: getPerm('REVIEW_TIMESHEETS') },
+      { roleId: managerRole!._id, permissionId: getPerm('MANAGE_TEAM_ALLOCATIONS') },
+      { roleId: managerRole!._id, permissionId: getPerm('VIEW_TEAM_DASHBOARD') },
+      { roleId: managerRole!._id, permissionId: getPerm('SUBMIT_TIMESHEET') },
+      { roleId: managerRole!._id, permissionId: getPerm('VIEW_PROJECTS') },
+      { roleId: managerRole!._id, permissionId: getPerm('REVIEW_TIMESHEETS') },
       
       // Employee
-      { roleId: employeeRole._id, permissionId: getPerm('SUBMIT_TIMESHEET') },
+      { roleId: employeeRole!._id, permissionId: getPerm('SUBMIT_TIMESHEET') },
     ];
-    await RolePermission.insertMany(rolePerms);
 
-    // 4. Create Users
-    console.log('Creating Users...');
+    for (const rp of rolePerms) {
+      const exists = await RolePermission.findOne({ roleId: rp.roleId, permissionId: rp.permissionId });
+      if (!exists) {
+        await RolePermission.create(rp);
+      }
+    }
 
-    const adminUser = await User.create({
-      username: 'admin',
-      email: 'admin@example.com',
-      fullName: 'System Admin',
-      passwordHash: 'Admin@1234',
-      roleId: adminRole._id,
-      forcePasswordChange: true,
-    });
+    // 4. Create Admin User (if not exists)
+    console.log('Checking Admin User...');
+    let adminUser = await User.findOne({ username: 'admin' });
+    if (!adminUser) {
+      adminUser = await User.create({
+        username: 'admin',
+        email: 'admin@example.com',
+        fullName: 'System Admin',
+        passwordHash: 'Admin@1234',
+        roleId: adminRole!._id,
+        forcePasswordChange: true,
+      });
+      console.log('Created Admin User.');
+    }
 
-    const managerUser = await User.create({
-      username: 'manager1',
-      email: 'manager@example.com',
-      fullName: 'Alice Manager',
-      passwordHash: 'Admin@1234',
-      roleId: managerRole._id,
-      forcePasswordChange: true,
-    });
+    // 5. Create Departments & Designations for Admin
+    console.log('Checking Admin HR Profile...');
+    let adminDept = await Department.findOne({ name: 'Administrator' });
+    if (!adminDept) {
+      adminDept = await Department.create({ name: 'Administrator' });
+    }
 
-    const employeeUser = await User.create({
-      username: 'emp1',
-      email: 'emp1@example.com',
-      fullName: 'Bob Employee',
-      passwordHash: 'Admin@1234',
-      roleId: employeeRole._id,
-      forcePasswordChange: true,
-    });
+    let adminDesig = await Designation.findOne({ title: 'HR', departmentId: adminDept._id });
+    if (!adminDesig) {
+      adminDesig = await Designation.create({ title: 'HR', departmentId: adminDept._id });
+    }
 
-    // 5. Create Departments & Designations
-    console.log('Creating HR Profiles...');
-    const engineeringDept = await Department.create({ name: 'Engineering' });
-    const softwareEngDesignation = await Designation.create({ title: 'Software Engineer', departmentId: engineeringDept._id });
-    const emDesignation = await Designation.create({ title: 'Engineering Manager', departmentId: engineeringDept._id });
-    const adminDept = await Department.create({ name: 'Administrator' });
-    const adminDesig = await Designation.create({ title: 'HR', departmentId: adminDept._id });
+    // 6. Create Admin Employee Profile
+    let adminProfile = await EmployeeProfile.findById(adminUser._id);
+    if (!adminProfile) {
+      await EmployeeProfile.create({
+        _id: adminUser._id,
+        fullName: adminUser.fullName,
+        departmentId: adminDept._id,
+        designationId: adminDesig._id,
+      });
+    }
 
-    // 6. Create Employee Profiles
-    const adminProfile = new EmployeeProfile({
-      _id: adminUser._id,
-      fullName: adminUser.fullName,
-      departmentId: adminDept._id,
-      designationId: adminDesig._id,
-    });
-    await adminProfile.save();
-
-    const managerProfile = new EmployeeProfile({
-      _id: managerUser._id,
-      fullName: managerUser.fullName,
-      departmentId: engineeringDept._id,
-      designationId: emDesignation._id,
-    });
-    await managerProfile.save();
-
-    const employeeProfile = new EmployeeProfile({
-      _id: employeeUser._id,
-      fullName: employeeUser.fullName,
-      departmentId: engineeringDept._id,
-      designationId: softwareEngDesignation._id,
-    });
-    await employeeProfile.save();
-
-    // 7. Create Resource Profiles
-    // Only EMPLOYEE roles get a ResourceProfile
-    const employeeResource = new ResourceProfile({
-      _id: employeeUser._id,
-      managerId: managerUser._id, // Bob reports to Alice
-      status: 'BENCH',
-      currentUtilisation: 0,
-    });
-    await employeeResource.save();
-
-    // 8. Create Skills
-    console.log('Creating Skills...');
-    const catBackend = await SkillCategory.create({ name: 'Backend' });
-    const catFrontend = await SkillCategory.create({ name: 'Frontend' });
-    const catDevops = await SkillCategory.create({ name: 'DevOps' });
-    const catQA = await SkillCategory.create({ name: 'QA' });
-    const catOther = await SkillCategory.create({ name: 'Other' });
-
-    const tsSkill = await Skill.create({ name: 'TypeScript', categoryId: catFrontend._id });
-    const nodeSkill = await Skill.create({ name: 'Node.js', categoryId: catBackend._id });
-    const reactSkill = await Skill.create({ name: 'React', categoryId: catFrontend._id });
-    const dockerSkill = await Skill.create({ name: 'Docker', categoryId: catDevops._id });
-
-    await EmployeeSkill.create({ resourceId: employeeUser._id, skillId: tsSkill._id, proficiency: 'EXPERT' });
-    await EmployeeSkill.create({ resourceId: employeeUser._id, skillId: reactSkill._id, proficiency: 'INTERMEDIATE' });
+    // 7. Create Skills
+    console.log('Checking basic Skills...');
+    const skillCategories = ['Backend', 'Frontend', 'DevOps', 'QA', 'Other'];
+    for (const catName of skillCategories) {
+      const exists = await SkillCategory.findOne({ name: catName });
+      if (!exists) {
+        await SkillCategory.create({ name: catName });
+      }
+    }
 
     console.log('--- Seeding Complete ---');
-    console.log('Admin credentials: admin / Admin@1234');
-    console.log('Manager credentials: manager1 / Admin@1234');
-    console.log('Employee credentials: emp1 / Admin@1234');
+    console.log('Admin credentials (if newly created): admin / Admin@1234');
 
     process.exit(0);
   } catch (error) {

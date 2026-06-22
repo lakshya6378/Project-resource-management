@@ -17,12 +17,12 @@ class ProjectRepository {
     }
 
     return Project.find(query)
-      .populate('managerId', 'fullName username')
+      .populate('managerId', 'fullName username email')
       .sort({ createdAt: -1 });
   }
 
   async findById(id) {
-    return Project.findById(id).populate('managerId', 'fullName username');
+    return Project.findById(id).populate('managerId', 'fullName username email');
   }
 
   async findByManagerId(managerId) {
@@ -38,7 +38,7 @@ class ProjectRepository {
     return Project.findByIdAndUpdate(id, data, {
       returnDocument: 'after',
       runValidators: true,
-    }).populate('managerId', 'fullName username');
+    }).populate('managerId', 'fullName username email');
   }
 
   /**
@@ -78,7 +78,7 @@ class ProjectRepository {
    * Find all active projects for health flagging by scheduler.
    */
   async findActiveProjects() {
-    return Project.find({ status: 'ACTIVE' });
+    return Project.find({ status: 'ACTIVE' }).populate('managerId', 'fullName username email');
   }
 }
 
