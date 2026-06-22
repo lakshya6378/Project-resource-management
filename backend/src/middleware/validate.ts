@@ -67,7 +67,8 @@ const validateQuery = (schema) => {
         });
       }
 
-      req.query = result.data;
+      Object.keys(req.query).forEach(key => delete req.query[key]);
+      Object.assign(req.query, result.data);
       next();
     } catch (error) {
       next(error);

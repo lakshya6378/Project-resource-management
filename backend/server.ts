@@ -4,7 +4,6 @@ import morgan from 'morgan';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
 
 import env from './src/config/env';
 import db from './src/config/db';
@@ -34,9 +33,6 @@ app.use(cors(corsOptions));                // Dynamic CORS
 
 app.use(express.json({ limit: '10mb' }));  // JSON body parser
 app.use(express.urlencoded({ extended: true }));
-
-// Data Sanitization against NoSQL query injection
-app.use(mongoSanitize());
 
 // Rate Limiting for Auth routes
 const authLimiter = rateLimit({
